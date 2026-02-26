@@ -1,0 +1,48 @@
+$app-space-values: (
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50
+) !default;
+// margin and padding shorthands
+$app-space-prefixes: (
+        p : padding,
+        pt : padding-top,
+        pr : padding-right,
+        pb : padding-bottom,
+        pl : padding-left,
+        m : margin,
+        mt : margin-top,
+        mr : margin-right,
+        mb : margin-bottom,
+        ml : margin-left,
+        margin : margin,
+) !default;
+
+
+@mixin make-spaces() {
+  @each $app-attr-short, $app-attr-long in $app-space-prefixes {
+    @each $value in $app-space-values {
+      .#{$app-attr-short}-#{$value} {
+        #{$app-attr-long}: #{$value}#{'px'}!important;
+      }
+    }
+  }
+}
+
+@include make-spaces()

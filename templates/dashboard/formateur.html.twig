@@ -1,0 +1,319 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+    <div class="text-right">
+        <a href="{{ path('export_formateur_excel', {'formateur': formateur.id, 'session': session.id}) }}"
+           class="btn btn-info">Export excel</a>
+    </div>
+    <div class="no-print">
+        <div class="row">
+            {{ form_start(form, { method: 'get', attr: { class: 'form-inline' } }) }}
+            <div class="col-xs-1">
+                <label for="formateur">Formateur</label>
+            </div>
+            <div class="col-xs-4">
+                {{ form_widget(form.formateur) }}
+            </div>
+        </div>
+
+        {{ form_end(form) }}
+    </div>
+    {% if formateur and data.analytique %}
+        <h3 class="text-center" style="margin-bottom:30px;">
+            {{ formateur.nom }} {{ formateur.prenom }}
+            <br>
+            <small>Fiche horaire prévisionnelle {{ session.libelle }}</small>
+        </h3>
+
+        <table class="table table-bordered table-condensed">
+
+            <thead>
+            <tr>
+                <th rowspan="2" class="text-center" style="vertical-align: middle;">
+                    ACTE DE FORMATION
+                </th>
+                <th colspan="2" class="text-center">Apprentissage</th>
+                <th colspan="2" class="text-center">Continue</th>
+            </tr>
+            <tr>
+                <th class="text-center">F à F</th>
+                <th class="text-center">Temps travail</th>
+                <th class="text-center">F à F</th>
+                <th class="text-center">Temps travail</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            {% for classe, bloc in data.classes %}
+                {% set total_ufa_face = 0 %}
+                {% set total_ufa_travail = 0 %}
+                {% set total_fpc_face = 0 %}
+                {% set total_fpc_travail = 0 %}
+
+                <tr style="background:{{ bloc.couleur }}">
+                    <td colspan="5"><strong>{{ classe }}</strong></td>
+                </tr>
+
+                {% for groupe, lignes in bloc.groupes %}
+
+                    <tr style="background:#f5f5f5;" class="">
+                        <td colspan="5" style="padding-left:20px;">
+                            <strong>{{ groupe }}</strong>
+                            <a class="open-ajax-modal pull-right"
+                               data-url="{{ path('seance_new', {'formateur': formateur.id, 'groupe': bloc.groupe_id, 'session': session.id,'classe':bloc.classe_id}) }}"
+                               data-title="Ajouter une séance"><span class="fa fa-plus text-info"></span>
+                            </a>
+                        </td>
+                    </tr>
+
+                    {% for ligne in lignes %}
+                        {% set total_ufa_face = total_ufa_face + ligne.ufa_face %}
+                        {% set total_ufa_travail = total_ufa_travail + ligne.ufa_travail %}
+                        {% set total_fpc_face = total_fpc_face + ligne.fpc_face %}
+                        {% set total_fpc_travail = total_fpc_travail + ligne.fpc_travail %}
+                        <tr>
+                            <td style="padding-left:40px;">{{ ligne.matiere }}
+                                <a class="pull-right open-ajax-modal"
+                                   data-url="{{ path('seance_edit', {id: ligne.id}) }}"
+                                   data-title="Modifier la séance">
+                                    <span class="fa fa-edit text-info"></span>
+                                </a>
+                            </td>
+                            <td class="text-center">{{ ligne.ufa_face|number_format(2, ',', ' ') }}</td>
+                            <td class="text-center">{{ ligne.ufa_travail|number_format(2, ',', ' ') }}</td>
+                            <td class="text-center">{{ ligne.fpc_face|number_format(2, ',', ' ') }}</td>
+                            <td class="text-center">{{ ligne.fpc_travail|number_format(2, ',', ' ') }}</td>
+
+                        </tr>
+                    {% endfor %}
+
+                {% endfor %}
+                <tr style="background:#d9edf7; font-weight:bold;">
+                    <td>Sous-total {{ classe }}</td>
+                    <td class="text-center">{{ total_ufa_face|number_format(2, ',', ' ') }}</td>
+                    <td class="text-center">{{ total_ufa_travail|number_format(2, ',', ' ') }}</td>
+                    <td class="text-center">{{ total_fpc_face|number_format(2, ',', ' ') }}</td>
+                    <td class="text-center">{{ total_fpc_travail|number_format(2, ',', ' ') }}</td>
+                </tr>
+            {% endfor %}
+
+            <!-- TOTALS -->
+            <tr style="background:#ffe699;">
+                <td><strong>TOTAL HEURES</strong></td>
+                <td class="text-center"><strong>{{ data.totaux.ufa_face|number_format(2, ',', ' ') }}</strong></td>
+                <td class="text-center"><strong>{{ data.totaux.ufa_travail|number_format(2, ',', ' ') }}</strong></td>
+                <td class="text-center"><strong>{{ data.totaux.fpc_face|number_format(2, ',', ' ') }}</strong></td>
+                <td class="text-center"><strong>{{ data.totaux.fpc_travail|number_format(2, ',', ' ') }}</strong></td>
+            </tr>
+
+            </tbody>
+        </table>
+
+
+        <!-- MISSIONS / NON COURS -->
+        {% if data.missions.lignes|length > 0 %}
+            <h4 style="margin-top:40px;">MISSIONS / AUTRES ACTIVITÉS</h4>
+
+            <table class="table table-bordered table-condensed">
+                <thead>
+                <tr>
+                    <th rowspan="2" class="text-center" style="vertical-align: middle;">
+                        MISSIONS
+                        <a class="pull-right open-ajax-modal"
+                           data-url="{{ path('seance_new_mission',{'formateur':formateur.id,'session':session.id}) }}"
+                           data-title="Ajouter une mission">
+                            <span class="fa fa-plus text-info"></span>
+                        </a>
+                    </th>
+                    <th colspan="2" class="text-center">Apprentissage</th>
+                    <th colspan="2" class="text-center">Continue</th>
+                </tr>
+                <tr>
+                    <th class="text-center">F à F</th>
+                    <th class="text-center">Temps travail</th>
+                    <th class="text-center">F à F</th>
+                    <th class="text-center">Temps travail</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                {# 🔹 LIGNES MISSIONS #}
+                {% for m in data.missions.lignes %}
+                    <tr>
+                        <td>
+                            {{ m.libelle }}
+                            {% if m.groupe %}
+                                <small class="text-muted"> - {{ m.groupe.nom }}</small>
+                            {% endif %}
+                            <a class="pull-right open-ajax-modal"
+                               data-url="{{ path('seance_edit', {id: m.id}) }}"
+                               data-title="Modifier la séance">
+                                <span class="fa fa-edit text-info"></span>
+                            </a>
+
+                        </td>
+                        <td class="text-center">{{ m.ufa_face|number_format(2, ',', ' ') }}</td>
+                        <td class="text-center">{{ m.ufa_travail|number_format(2, ',', ' ') }}</td>
+                        <td class="text-center">{{ m.fpc_face|number_format(2, ',', ' ') }}</td>
+                        <td class="text-center">{{ m.fpc_travail|number_format(2, ',', ' ') }}</td>
+                    </tr>
+                {% endfor %}
+
+                {# 🔹 TOTAL DETAILLE MISSIONS #}
+                <tr style="background:#d9edf7; font-weight:bold;">
+                    <td><strong>TOTAL MISSIONS</strong></td>
+                    <td class="text-center">
+                        {{ data.missions.totaux.ufa_face|number_format(2, ',', ' ') }}
+                    </td>
+                    <td class="text-center">
+                        {{ data.missions.totaux.ufa_travail|number_format(2, ',', ' ') }}
+                    </td>
+                    <td class="text-center">
+                        {{ data.missions.totaux.fpc_face|number_format(2, ',', ' ') }}
+                    </td>
+                    <td class="text-center">
+                        {{ data.missions.totaux.fpc_travail|number_format(2, ',', ' ') }}
+                    </td>
+                </tr>
+
+                {# 🔹 TOTAL GLOBAL MISSION (si tu veux garder ton ancien total) #}
+                <tr style="background:#f5f5f5">
+                    <td><strong>Total temps travail mission</strong></td>
+                    <td colspan="4" class="text-center">
+                        <strong>{{ data.totaux.mission|number_format(2, ',', ' ') }}</strong>
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if data.analytique is defined and data.analytique is not empty %}
+
+            <h4 style="margin-top:40px;">ANALYTIQUE</h4>
+
+            <table class="table table-bordered">
+                <thead>
+                <tr style="background-color:#f5f5f5">
+                    <th>Indicateur</th>
+                    <th class="text-center" style="width: 25%"><strong>Prévisionnel</strong></th>
+                    <th class="text-center" style="width: 25%"><strong>Réel</strong></th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                {# Pourcentage réalisé #}
+                <tr>
+                    <td>Pourcentage</td>
+                    <td class="text-right">
+                        {{ data.analytique.pourcentage_previsitionnel|number_format(1, ',', ' ') }} %
+                    </td>
+                    <td class="text-right">
+                <span class="label
+                    {% if data.analytique.pourcentage >= data.analytique.pourcentage_previsitionnel|number_format(1, ',', ' ') %}
+                        label-success
+                    {% elseif data.analytique.pourcentage >= 80 %}
+                        label-warning
+                    {% else %}
+                        label-danger
+                    {% endif %}
+                ">
+                    {{ data.analytique.pourcentage|number_format(1, ',', ' ') }} %
+                </span>
+                    </td>
+
+                </tr>
+
+                {# Différence heures #}
+                <tr>
+                    <td>Différence d'heures</td>
+                    <td class="text-center" colspan="2">
+                <span
+                    class="label {% if data.analytique.diff_heures > 0 %}label-danger{% else %}label-success{% endif %}">
+                    {{ data.analytique.diff_heures|number_format(1, ',', ' ') }} h
+                </span>
+                    </td>
+                </tr>
+
+                <tr style="background-color:#f5f5f5">
+                    <td><strong>Répartition UFA / FPC</strong></td>
+                    <td class="text-center"><strong>UFA</strong></td>
+                    <td class="text-center"><strong>FC</strong></td>
+                </tr>
+
+                <tr>
+                    <td>en %</td>
+                    <td class="text-right">
+                        {{ data.analytique.ufa_percent|number_format(1, ',', ' ') }} %
+                    </td>
+                    <td class="text-right">
+                        {{ data.analytique.fpc_percent|number_format(1, ',', ' ') }} %
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Semaine</td>
+                    <td class="text-right">
+                        {{ data.analytique.ufa_semaine|number_format(2, ',', ' ') }} h
+                    </td>
+                    <td class="text-right">
+                        {{ data.analytique.fpc_semaine|number_format(2, ',', ' ') }} h
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Mois</td>
+                    <td class="text-right">
+                        {{ data.analytique.ufa_mois|number_format(1, ',', ' ') }} h
+                    </td>
+                    <td class="text-right">
+                        {{ data.analytique.fpc_mois|number_format(1, ',', ' ') }} h
+                    </td>
+                </tr>
+
+                <tr style="background-color:#f5f5f5">
+                    <td><strong>Total / mois</strong></td>
+                    <td colspan="2" class="text-center">
+                        <strong>{{ data.analytique.total_mois|number_format(1, ',', ' ') }} h</strong>
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+
+        {% endif %}
+        <!-- TOTAL GENERAL -->
+        <div class="panel panel-default" style="margin-top:30px;">
+            <div class="panel-heading text-center">
+                <strong>TOTAL GENERAL</strong>
+            </div>
+            <div class="panel-body text-center">
+                <h4>
+                    Face à face : {{ data.totaux.face_face|number_format(2, ',', ' ') }} h
+                    &nbsp;&nbsp;|
+                    Temps travail : {{ data.totaux.total_travail|number_format(2, ',', ' ') }} h
+                </h4>
+
+                {% if data.analytique is defined %}
+                    <p class="text-muted">
+                        Taux de charge :
+                        {{ data.analytique.pourcentage|number_format(1, ',', ' ') }} %
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+        </div>
+    {% endif %}
+
+{% endblock %}
+{% block javascripts %}
+
+    <script>
+
+    </script>
+    {{ parent() }}
+{% endblock %}

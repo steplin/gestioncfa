@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <h2>Import Ypareo</h2>
+
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Session : {{ session.libelle }}
+            </div>
+            <div class="panel-body">
+
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Fichier CSV (séparateur ;)</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Supprimer matière avant import</label>
+                        <input type="checkbox" name="delete" value=1>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        Importer
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
+        {% if report %}
+            <div class="panel panel-success">
+                <div class="panel-heading">Résultat</div>
+                <div class="panel-body">
+                    <p><strong>Activités créées :</strong> {{ report.created }}</p>
+
+                    {% if report.errors|length > 0 %}
+                        <div class="alert alert-danger">
+                            <strong>Erreurs :</strong>
+                            <ul>
+                                {% for error in report.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

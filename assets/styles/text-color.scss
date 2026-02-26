@@ -1,0 +1,47 @@
+$s-values: (
+        "primary",
+        "info",
+        "sky",
+        "modal",
+        "select",
+        "modal-hover",
+        "success",
+        "vert",
+        "sang",
+        "danger",
+        "orange",
+        "warning",
+        "madarine",
+        "warn",
+        "green",
+        "black",
+        "dark",
+        "secondary",
+        "grey",
+        "default",
+        "light",
+        "gris",
+        "alert",
+        "white",
+        "yellow",
+        "layout",
+        "cfa-ecb"
+) !default;
+
+// margin and padding shorthands
+$s-prefixes: (
+        t : color,
+        text : color,
+) !default;
+
+@mixin make-spaces() {
+  @each $short, $long in $s-prefixes {
+    @each $value in $s-values {
+      .#{$short}-#{$value} {
+        #{$long}: var(--#{$value}) !important;
+      }
+    }
+  }
+}
+
+@include make-spaces()

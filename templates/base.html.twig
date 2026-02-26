@@ -1,17 +1,104 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Gestion{% endblock %}</title>
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+    {# 3. CSS spécifique page (optionnel) #}
+    {% block stylesheets %}
+        {{ encore_entry_link_tags('app') }}
+    {% endblock %}
+</head>
+<body>
+
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed"
+                    data-toggle="collapse" data-target="#navbar">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="">Gestion</a>
+        </div>
+
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-left">
+
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+
+
+                <li><a href="/admin">Admin</a></li>
+                <li><a href="{{ path('dashboard_formateur',{formateur:5,session:1}) }}">Formateur</a></li>
+                <li><a href="{{ path('admin_import_ypareo',{id:1}) }}">Import ypareo</a></li>
+
+                {% if app.user %}
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            {{ app.user.nom ~ ' ' ~ app.user.prenom }} <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Mon compte</a></li>
+                            <li class="divider"></li>
+                            <li><a href="{{ path('app_logout') }}">Déconnexion</a></li>
+                        </ul>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container-fluid" style="margin-top: 60px;margin-bottom: 60px;">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ label }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {% block body %}{% endblock %}
+    <div class="modal fade" id="ajaxModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header" style="background-color: #337ab7;color: white">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" id="ajaxModalTitle">Chargement...</h4>
+                </div>
+
+                <div class="modal-body" id="ajaxModalBody" style="padding-left: 30px;padding-right: 30px;">
+                    <div class="text-center">
+                        <span class="glyphicon glyphicon-refresh glyphicon-spin"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% block javascripts %}
+    {{ encore_entry_script_tags('app') }}
+{% endblock %}
+<style>
+    .form-group ul {
+        padding-left: 0;
+    }
+
+    .form-group ul li {
+        color: #a94442;
+        background-color: #f2dede;
+        border: 1px solid #ebccd1;
+        padding: 6px 10px;
+        margin-top: 5px;
+        list-style: none;
+        border-radius: 4px;
+    }
+
+</style>
+</body>
 </html>

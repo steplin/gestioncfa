@@ -1,0 +1,52 @@
+{{ form_start(form, {
+    attr: {
+        id: 'seance-edit-form',
+        action: path('seance_edit', {id: seance.id})
+    }
+}) }}
+<div class="row">
+    {{ form_row(form.formateur) }}
+    {{ form_row(form.groupe) }}
+    {{ form_row(form.matiere) }}
+    {{ form_row(form.typeActivite) }}
+</div>
+<div class="row"><strong>Volume formateur</strong></div>
+<hr>
+<div class="row mt-10">
+    <div class="col-xs-2"><label for="" class="text-muted">Prévisionnel</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresFormateurPrevisionnel) }}</div>
+    <div class="col-xs-2"><label for="" class="text-muted">Planifié</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresFormateur) }}</div>
+</div>
+<div class="row mt-10"><strong>Volume Groupe</strong></div>
+<hr>
+<div class="row">
+    <div class="col-xs-2"><label for="" class="text-muted">Prévisionnel</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresGroupePrevisionnel) }}</div>
+    <div class="col-xs-2"><label for="" class="text-muted">Planifié</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresGroupe) }}</div>
+</div>
+
+{{ form_errors(form) }}
+
+<div class="row">
+    <hr class="row">
+<div class="text-right mt-15">
+
+    <button type="button"
+            class="btn btn-danger delete-entity"
+            data-url="{{ path('seance_delete', {id: seance.id}) }}">
+        Supprimer
+    </button>
+    <a class="btn btn-default"
+       href="{{ path('dashboard_formateur', {
+           'session': seance.session.id,
+           'formateur': seance.formateur.id
+       }) }}">
+        Annuler
+    </a>
+    <button type="submit" class="btn btn-primary">Enregistrer</button>
+</div>
+</div>
+{{ form_end(form) }}
+

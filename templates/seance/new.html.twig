@@ -1,0 +1,50 @@
+{{ form_start(form, {
+    attr: {
+        id: 'seance-new-forn',
+        action: path('seance_new', {session:session.id, formateur:formateur.id,groupe:groupe.id,classe:classe.id})
+    }
+}) }}
+<div class="row">
+    {{ form_row(form.matiere) }}
+</div>
+<div class="row"><strong>Volume formateur</strong></div>
+<hr>
+<div class="row mt-10">
+    <div class="col-xs-2"><label for="" class="text-muted">Prévisionnel</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresFormateurPrevisionnel) }}</div>
+    <div class="col-xs-2"><label for="" class="text-muted">Planifié</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresFormateur) }}</div>
+</div>
+<div class="row mt-10"><strong>Volume Groupe</strong></div>
+<hr>
+<div class="row">
+    <div class="col-xs-2"><label for="" class="text-muted">Prévisionnel</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresGroupePrevisionnel) }}</div>
+    <div class="col-xs-2"><label for="" class="text-muted">Planifié</label></div>
+    <div class="col-xs-4">{{ form_widget(form.volumeHeuresGroupe) }}</div>
+</div>
+
+{{ form_errors(form) }}
+
+<div class="row">
+    <hr class="row">
+    <div class="text-right mt-15">
+        <div class="text-right" style="margin-top:20px;">
+
+            <button type="submit" class="btn btn-primary">
+                Enregistrer
+            </button>
+
+
+        </div>
+        <a class="btn btn-default"
+           href="{{ path('dashboard_formateur', {
+               'session': seance.session.id,
+               'formateur': seance.formateur.id
+           }) }}">
+            Annuler
+        </a>
+    </div>
+</div>
+{{ form_end(form) }}
+

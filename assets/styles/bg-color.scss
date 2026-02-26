@@ -1,0 +1,48 @@
+
+$bg-values: (
+        "primary",
+        "info",
+        "sky",
+        "modal",
+        "select",
+        "modal-hover",
+        "success",
+        "vert",
+        "sang",
+        "danger",
+        "orange",
+        "warning",
+        "madarine",
+        "warn",
+        "green",
+        "black",
+        "dark",
+        "secondary",
+        "grey",
+        "default",
+        "light",
+        "light-select",
+        "gris",
+        "alert",
+        "white",
+        "yellow",
+        "layout",
+        "cfa-ecb"
+) !default;
+
+// margin and padding shorthands
+$bg-prefixes: (
+        bg : background-color,
+        background-color : background-color,
+) !default;
+
+@mixin make-spaces() {
+  @each $attr-sht, $attr-lg in $bg-prefixes {
+    @each $val in $bg-values {
+      .#{$attr-sht}-#{$val} {
+        #{$attr-lg}: var(--#{$val}) !important;
+      }
+    }
+  }
+}
+@include make-spaces()
