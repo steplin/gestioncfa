@@ -2,13 +2,13 @@
 
 namespace App\Repository;
 
-use App\Entity\Activite;
+
 use App\Entity\Seance;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Activite>
+ * @extends ServiceEntityRepository<Seance>
  */
 class SeanceRepository extends ServiceEntityRepository
 {
