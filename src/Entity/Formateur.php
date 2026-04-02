@@ -9,7 +9,13 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: FormateurRepository::class)]
-#[ORM\Table(name: 'formateur')]
+#[ORM\Table(
+    name: 'formateur',
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_formateur_code', columns: ['code']),
+        new ORM\UniqueConstraint(name: 'uniq_formateur_email', columns: ['email'])
+    ]
+)]
 class Formateur
 {
     #[ORM\Id]
@@ -27,13 +33,13 @@ class Formateur
     #[ORM\Column(length: 80)]
     private ?string $prenom = null;
 
-    #[ORM\Column(length: 120, nullable: true)]
+    #[ORM\Column(length: 120, unique: true, nullable: false)]
     private ?string $email = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     private ?string $tauxHoraire = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 4, scale: 2, nullable: true)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 4, nullable: true)]
     private ?string $quotite = null;
     // 1.00 = temps plein, 0.80 = 80%
 
@@ -53,6 +59,8 @@ class Formateur
     #[ORM\Column(type: 'decimal', precision: 6, scale: 2, nullable: true)]
     private ?string $volumeContractuel = null;
 
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $initiales = null;
     public function __construct()
     {
         $this->seances = new ArrayCollection();
@@ -204,9 +212,37 @@ class Formateur
         $this->volumeContractuel = $volumeContractuel;
         return $this;
     }
+    public function generateInitiales(): string
+    {
+        $nomComplet = trim($this->prenom . ' ' . $this->nom);
+
+        // sépare espace et tiret
+        $mots = preg_split('/[\s\-]+/', $nomComplet);
+
+        $initiales = '';
+
+        foreach ($mots as $mot) {
+            if ($mot !== '') {
+                $initiales .= strtoupper(mb_substr($mot, 0, 1));
+            }
+        }
+
+        // limite à 4 lettres
+        return mb_substr($initiales, 0, 4);
+    }
     public function __toString(): string
     {
         return $this->getNomComplet();
+    }
+
+    public function getInitiales(): ?string
+    {
+        return $this->initiales;
+    }
+
+    public function setInitiales(?string $initiales): void
+    {
+        $this->initiales = $initiales;
     }
 
 }

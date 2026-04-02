@@ -1,11 +1,12 @@
 {{ form_start(form, {
     attr: {
-        id: 'seance-edit-form',
-        action: path('seance_edit', {id: seance.id})
+        id: 'seance-new-forn',
+        action: path('classe_seance_new', {session:session.id, classe:classe.id,groupe:groupe.id})
     }
 }) }}
 <div class="row">
     {{ form_row(form.formateur) }}
+
     {{ form_row(form.groupe) }}
     {{ form_row(form.matiere) }}
     {{ form_row(form.typeActivite) }}
@@ -32,14 +33,7 @@
 <div class="row">
     <hr class="row">
     <div class="text-right mt-15">
-
-        <button type="button"
-                class="btn btn-danger delete-entity"
-                data-url="{{ path('seance_delete', {id: seance.id}) }}">
-            Supprimer
-        </button>
         <button class="btn btn-default" type="button" data-dismiss="modal">Annuler</button>
-
         <button type="submit" class="btn btn-primary">Enregistrer</button>
     </div>
 </div>

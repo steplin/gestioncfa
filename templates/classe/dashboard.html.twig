@@ -1,0 +1,386 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+
+    <div class="panel panel-default no-print" style="margin-bottom:20px;">
+        <div class="panel-body">
+
+            <form method="get" class="form-horizontal">
+
+                <div class="row mr-5 ml-5">
+
+                    <!-- Session -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="session" class="control-label">Session</label>
+                            <select name="session"
+                                    id="session"
+                                    class="form-control select2"
+                                    onchange="this.form.submit()">
+                                {% for s in sessions %}
+                                    <option value="{{ s.id }}"
+                                        {{ s.id == session.id ? 'selected' : '' }}>
+                                        {{ s.nom }} — {{ s.libelle }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Classe -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="classe" class="control-label">Classe</label>
+                            <select name="classe"
+                                    id="classe"
+                                    class="form-control select2"
+                                    onchange="this.form.submit()">
+                                {% for c in classes %}
+                                    <option value="{{ c.id }}"
+                                        {{ c.id == classe.id ? 'selected' : '' }}>
+                                        {{ c.nom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Mode -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="mode" class="control-label">Mode</label>
+                            <select name="mode"
+                                    id="mode"
+                                    class="form-control select2"
+                                    onchange="this.form.submit()">
+                                <option value="reel" {{ mode == 'reel' ? 'selected' : '' }}>Réel</option>
+                                <option value="prev" {{ mode == 'prev' ? 'selected' : '' }}>Prévisionnel</option>
+                                <option value="both" {{ mode == 'both' ? 'selected' : '' }}>Comparatif</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Affichage -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="view" class="control-label">Affichage</label>
+                            <select name="view"
+                                    id="view"
+                                    class="form-control select2"
+                                    onchange="this.form.submit()">
+                                <option value="formateur" {{ view == 'formateur' ? 'selected' : '' }}>
+                                    Par formateur
+                                </option>
+                                <option value="matiere" {{ view == 'matiere' ? 'selected' : '' }}>
+                                    Par matière
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Plan de formation -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="control-label">&nbsp;</label>
+                            <div class="checkbox" style="margin-top:0;">
+                                <label>
+                                    <input type="checkbox"
+                                           name="prioritaire"
+                                           value="1"
+                                           onchange="this.form.submit()"
+                                        {{ prioritaire ? 'checked' : '' }}>
+                                    Plan de formation
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+    {% if classe %}
+    <h3 style="margin-bottom: 15px;" class="text-center">
+        Classe — {{ classe.nom }}
+        <br>
+        <small>{{ session.nom }} — {{ session.libelle }}</small>
+    </h3>
+
+
+
+    {% import _self as ui %}
+
+    {% macro h(val) %}
+        {% set v = val|default(0) %}
+        {% if v == 0 %}{{ '' }}{% else %}{{ v|number_format(2, '.', '') }}{% endif %}
+    {% endmacro %}
+
+    {% macro ecartClass(val) %}
+        {% set v = val|default(0) %}
+        {% if v > 0 %}text-success{% elseif v < 0 %}text-danger{% else %}{% endif %}
+    {% endmacro %}
+    {% if view=='matiere' and prioritaire %}
+        <table class="table table-bordered table-condensed">
+            <thead>
+            <tr class="active">
+                <th>Matière</th>
+
+                {% if mode in ['reel','prev'] %}
+                    <th class="text-right">Face à face (h)</th>
+                {% else %}
+                    <th class="text-right">Prév.</th>
+                    <th class="text-right">Réel</th>
+                    <th class="text-right">Écart</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+
+            {% for mBlock in data.matieres %}
+                {% set r = mBlock.reel %}
+                {% set p = mBlock.prev %}
+                {% set e = r - p %}
+
+                <tr>
+                    <td>{{ mBlock.matiere.libelle }}</td>
+
+                    {% if mode == 'reel' %}
+                        <td class="text-right">{{ ui.h(r) }}</td>
+                    {% elseif mode == 'prev' %}
+                        <td class="text-right">{{ ui.h(p) }}</td>
+                    {% else %}
+                        <td class="text-right">{{ ui.h(p) }}</td>
+                        <td class="text-right">{{ ui.h(r) }}</td>
+                        <td class="text-right">
+                            {% if e != 0 %}
+                                <span class="{{ ui.ecartClass(e) }}">{{ ui.h(e) }}</span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+
+            {# TOTAL GENERAL #}
+            {% set tr = data.totaux.reel %}
+            {% set tp = data.totaux.prev %}
+            {% set te = tr - tp %}
+
+            <tr style="background:#ecbb24;font-weight:bold;">
+                <td>TOTAL GENERAL</td>
+
+                {% if mode == 'reel' %}
+                    <td class="text-right">{{ ui.h(tr) }}</td>
+                {% elseif mode == 'prev' %}
+                    <td class="text-right">{{ ui.h(tp) }}</td>
+                {% else %}
+                    <td class="text-right">{{ ui.h(tp) }}</td>
+                    <td class="text-right">{{ ui.h(tr) }}</td>
+                    <td class="text-right">
+                        {% if te != 0 %}
+                            <span class="{{ ui.ecartClass(te) }}">{{ ui.h(te) }}</span>
+                        {% endif %}
+                    </td>
+                {% endif %}
+            </tr>
+
+            </tbody>
+        </table>
+    {% else %}
+        <table class="table table-bordered table-condensed">
+            <thead>
+            <tr class="active">
+                <th style="width: 55%;">Acte</th>
+
+                {% if mode in ['reel','prev'] %}
+                    <th class="text-right">Face à face (h)</th>
+                {% else %}
+                    <th class="text-right">Prév.</th>
+                    <th class="text-right">Réel</th>
+                    <th class="text-right">Écart</th>
+                {% endif %}
+            </tr>
+            </thead>
+
+            <tbody>
+
+            {# Bandeau Classe #}
+            <tr>
+                <td colspan="{{ mode == 'both' ? 4 : 2 }}" class="info" style="font-weight: bold;background:#ffe699;">
+                    {{ classe.nom }}
+                </td>
+            </tr>
+
+            {% for gBlock in data.groupes %}
+                {% set g = gBlock.groupe %}
+
+                <tr>
+                    <td colspan="{{ mode == 'both' ? 4 : 2 }}" style="font-weight: bold;">
+                        Groupe — {{ g.nom }}
+                        <a class="open-ajax-modal pull-right"
+                           data-url="{{ path('classe_seance_new', {'groupe': g.id, 'session': session.id,'classe':classe.id}) }}"
+                           data-title="Ajouter une séance"><span class="fa fa-plus text-info no-print"></span>
+                        </a>
+                    </td>
+                </tr>
+
+                {% if view == 'matiere' %}
+
+                    {% for mBlock in gBlock.matieres %}
+                        {% set r = mBlock.reel %}
+                        {% set p = mBlock.prev %}
+                        {% set e = r - p %}
+
+                        <tr>
+                            <td style="padding-left: 25px;">
+                                {{ mBlock.matiere.libelle }}
+                            </td>
+
+                            {% if mode == 'reel' %}
+                                <td class="text-right">{{ ui.h(r) }}</td>
+
+                            {% elseif mode == 'prev' %}
+                                <td class="text-right">{{ ui.h(p) }}</td>
+
+                            {% else %}
+                                <td class="text-right">{{ ui.h(p) }}</td>
+                                <td class="text-right">{{ ui.h(r) }}</td>
+                                <td class="text-right">
+                                    {% if e != 0 %}
+                                        <span class="{{ ui.ecartClass(e) }}">{{ ui.h(e) }}</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+
+
+                {% else %}
+
+                    {% for fBlock in gBlock.formateurs %}
+                        {% set f = fBlock.formateur %}
+
+                        <tr>
+                            <td colspan="{{ mode == 'both' ? 4 : 2 }}" style="font-weight: bold;background:#d9edf7">
+                                <span class="glyphicon glyphicon-user"></span>
+                                {{ f.prenom }} {{ f.nom }}
+                            </td>
+                        </tr>
+
+                        {% for ligne in fBlock.lignes %}
+                            {% set r = ligne.reel %}
+                            {% set p = ligne.prev %}
+                            {% set e = r - p %}
+
+                            <tr>
+                                <td style="padding-left: 25px;">
+                                    {{ ligne.matiere.libelle }}
+                                    <a class="pull-right open-ajax-modal"
+                                       data-url="{{ path('classe_seance_edit', {id: ligne.id}) }}"
+                                       data-title="Modifier la séance">
+                                        <span class="fa fa-edit text-info no-print"></span>
+                                    </a>
+                                </td>
+
+                                {% if mode == 'reel' %}
+                                    <td class="text-right">{{ ui.h(r) }}</td>
+                                {% elseif mode == 'prev' %}
+                                    <td class="text-right">{{ ui.h(p) }}</td>
+                                {% else %}
+                                    <td class="text-right">{{ ui.h(p) }}</td>
+                                    <td class="text-right">{{ ui.h(r) }}</td>
+                                    <td class="text-right">
+                                        {% if e != 0 %}
+                                            <span class="{{ ui.ecartClass(e) }}">{{ ui.h(e) }}</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+
+                        {# Sous-total Formateur #}
+                        {% set tr = fBlock.totaux.reel %}
+                        {% set tp = fBlock.totaux.prev %}
+                        {% set te = tr - tp %}
+
+                        <tr style="font-weight: bold;">
+                            <td>Sous-total Formateur</td>
+
+                            {% if mode == 'reel' %}
+                                <td class="text-right">{{ ui.h(tr) }}</td>
+                            {% elseif mode == 'prev' %}
+                                <td class="text-right">{{ ui.h(tp) }}</td>
+                            {% else %}
+                                <td class="text-right">{{ ui.h(tp) }}</td>
+                                <td class="text-right">{{ ui.h(tr) }}</td>
+                                <td class="text-right">
+                                    {% if te != 0 %}
+                                        <span class="{{ ui.ecartClass(te) }}">{{ ui.h(te) }}</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        </tr>
+
+                    {% endfor %}
+
+                {% endif %}
+
+
+                {# Sous-total Groupe #}
+                {% set gr = gBlock.totaux.reel %}
+                {% set gp = gBlock.totaux.prev %}
+                {% set ge = gr - gp %}
+
+                <tr style="background:#ffe699; font-weight: bold;">
+                    <td>Sous-total Groupe</td>
+
+                    {% if mode == 'reel' %}
+                        <td class="text-right">{{ ui.h(gr) }}</td>
+                    {% elseif mode == 'prev' %}
+                        <td class="text-right">{{ ui.h(gp) }}</td>
+                    {% else %}
+                        <td class="text-right">{{ ui.h(gp) }}</td>
+                        <td class="text-right">{{ ui.h(gr) }}</td>
+                        <td class="text-right">
+                            {% if ge != 0 %}
+                                <span class="{{ ui.ecartClass(ge) }}">{{ ui.h(ge) }}</span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                </tr>
+
+            {% endfor %}
+
+            {# TOTAL GENERAL #}
+            {% set tr = data.totaux.reel %}
+            {% set tp = data.totaux.prev %}
+            {% set te = tr - tp %}
+
+            <tr style="background: #ecbb24; font-weight: bold;">
+                <td>TOTAL GENERAL</td>
+
+                {% if mode == 'reel' %}
+                    <td class="text-right">{{ ui.h(tr) }}</td>
+                {% elseif mode == 'prev' %}
+                    <td class="text-right">{{ ui.h(tp) }}</td>
+                {% else %}
+                    <td class="text-right">{{ ui.h(tp) }}</td>
+                    <td class="text-right">{{ ui.h(tr) }}</td>
+                    <td class="text-right">
+                        {% if te != 0 %}
+                            <span class="{{ ui.ecartClass(te) }}">{{ ui.h(te) }}</span>
+                        {% endif %}
+                    </td>
+                {% endif %}
+            </tr>
+
+            </tbody>
+        </table>
+
+        </div>
+    {% endif %}
+    {% endif %}
+
+{% endblock %}

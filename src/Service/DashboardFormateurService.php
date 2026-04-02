@@ -35,6 +35,10 @@ class DashboardFormateurService
                     'ufa_travail' => 0.0,
                     'fpc_face' => 0.0,
                     'fpc_travail' => 0.0,
+                    'ufa_face_prev' => 0.0,
+                    'ufa_travail_prev' => 0.0,
+                    'fpc_face_prev' => 0.0,
+                    'fpc_travail_prev' => 0.0,
                 ]
             ],
             'totaux' => [
@@ -45,6 +49,12 @@ class DashboardFormateurService
                 'mission' => 0.0,
                 'total_travail' => 0.0,
                 'face_face' => 0.0,
+                'ufa_face_prev' => 0.0,
+                'ufa_travail_prev' => 0.0,
+                'fpc_face_prev' => 0.0,
+                'fpc_travail_prev' => 0.0,
+                'face_face_prev' => 0.0,
+                'mission_prev' => 0.0,
             ],
             'analytique' => []
         ];
@@ -57,12 +67,16 @@ class DashboardFormateurService
 
 
             $volume = (float)$seance->getVolumeHeuresFormateur();
+            $volumePrev = (float)$seance->getVolumeHeuresFormateurPrevisionnel();
             $pondereForm = (float)$seance->getVolumePondereFormateur();
+            $pondereFormPrev = (float)$seance->getVolumePondereFormateurPrev();
 
             $face = $type->isImpactFaceAFace() ? $volume : 0.0;
             $travail = $type->isImpactTempsTravail() ? $pondereForm : 0.0;
+            $face_prev = $type->isImpactFaceAFace() ? $volumePrev : 0.0;
+            $travail_prev = $type->isImpactTempsTravail() ? $pondereFormPrev : 0.0;
 
-            if ($seance->getVolumeHeuresGroupe() == 0) {
+            if ($seance->getVolumeHeuresGroupe() == 0 and $seance->getVolumeHeuresGroupePrevisionnel() == 0) {
                 continue;
             }
             $isUfa = $classe->getType() === 'FL';
@@ -80,6 +94,10 @@ class DashboardFormateurService
                     'ufa_travail' => $isUfa ? $travail : 0,
                     'fpc_face' => !$isUfa ? $face : 0,
                     'fpc_travail' => !$isUfa ? $travail : 0,
+                    'ufa_face_prev' => $isUfa ? $face_prev : 0,
+                    'ufa_travail_prev' => $isUfa ? $travail_prev : 0,
+                    'fpc_face_prev' => !$isUfa ? $face_prev : 0,
+                    'fpc_travail_prev' => !$isUfa ? $travail_prev : 0,
                     'groupe' => $seance->getGroupe(),
                     'groupe_id' => $seance->getGroupe()->getId(),
                     'classe_id' => $classe->getId(),
@@ -89,13 +107,20 @@ class DashboardFormateurService
 
                 // Optionnel : comptabiliser dans totaux globaux
                 $data['totaux']['mission'] += $travail;
+                $data['totaux']['mission_prev'] += $travail_prev;
                 $data['totaux']['face_face'] += $face;
+                $data['totaux']['face_face_prev'] += $face_prev;
                 if ($isUfa) {
                     $data['missions']['totaux']['ufa_travail'] += $travail;
                     $data['missions']['totaux']['ufa_face'] += $face;
+                    $data['missions']['totaux']['ufa_travail_prev'] += $travail_prev;
+                    $data['missions']['totaux']['ufa_face_prev'] += $face_prev;
+
                 } else {
                     $data['missions']['totaux']['fpc_travail'] += $travail;
                     $data['missions']['totaux']['fpc_face'] += $face;
+                    $data['missions']['totaux']['fpc_travail_prev'] += $travail_prev;
+                    $data['missions']['totaux']['fpc_face_prev'] += $face_prev;
                 }
                 continue;
             }
@@ -125,17 +150,26 @@ class DashboardFormateurService
                 'ufa_travail' => $isUfa ? $travail : 0,
                 'fpc_face' => !$isUfa ? $face : 0,
                 'fpc_travail' => !$isUfa ? $travail : 0,
+                'ufa_face_prev' => $isUfa ? $face_prev : 0,
+                'ufa_travail_prev' => $isUfa ? $travail_prev : 0,
+                'fpc_face_prev' => !$isUfa ? $face_prev : 0,
+                'fpc_travail_prev' => !$isUfa ? $travail_prev : 0,
                 'id' => $seance->getId(),
             ];
 
             if ($isUfa) {
                 $data['totaux']['ufa_face'] += $face;
                 $data['totaux']['ufa_travail'] += $travail;
+                $data['totaux']['ufa_face_prev'] += $face_prev;
+                $data['totaux']['ufa_travail_prev'] += $travail_prev;
             } else {
                 $data['totaux']['fpc_face'] += $face;
                 $data['totaux']['fpc_travail'] += $travail;
+                $data['totaux']['fpc_face_prev'] += $face_prev;
+                $data['totaux']['fpc_travail_prev'] += $travail_prev;
             }
             $data['totaux']['face_face'] += $face;
+            $data['totaux']['face_face_prev'] += $face_prev;
         }
 
         // 🔥 TRI
@@ -156,25 +190,40 @@ class DashboardFormateurService
 
         // 🔥 ANALYTIQUE
         $data['totaux']['total_travail'] = $totalTravail = $data['totaux']['ufa_travail'] + $data['totaux']['fpc_travail'] + $data['totaux']['mission'];
+        $data['totaux']['total_travail_prev'] = $totalTravail_prev = $data['totaux']['ufa_travail_prev'] + $data['totaux']['fpc_travail_prev'] + $data['totaux']['mission_prev'];
 
 
         if ($totalTravail > 0) {
-            $ufaPrc = ($data['totaux']['ufa_travail'] + $data['missions']['totaux']['ufa_travail']) * 100 / $totalTravail;
-            $fpcPrc = ($data['totaux']['fpc_travail'] + $data['missions']['totaux']['fpc_travail']) * 100 / $totalTravail;
+
+            $ufaPrc = ($data['totaux']['ufa_travail'] + $data['missions']['totaux']['ufa_travail']) / $formateur->getVolumeContractuel();
+            $fpcPrc = ($data['totaux']['fpc_travail'] + $data['missions']['totaux']['fpc_travail']) / $formateur->getVolumeContractuel();
+            $ufaPrc_prev = ($data['totaux']['ufa_travail_prev'] + $data['missions']['totaux']['ufa_travail_prev']) / $formateur->getVolumeContractuel();
+            $fpcPrc_prev = ($data['totaux']['fpc_travail_prev'] + $data['missions']['totaux']['fpc_travail_prev']) / $formateur->getVolumeContractuel();
             $data['analytique'] = [
+                'temps_travail_prev' => $totalTravail_prev,
+                'temps_travail' => $totalTravail,
                 'pourcentage' => $totalTravail * 100 / ($formateur->getVolumeContractuel()),
-                'pourcentage_previsitionnel' => $formateur->getQuotite() * 100,
+                'pourcentage_prev' => $totalTravail_prev * 100 / ($formateur->getVolumeContractuel()),
+                'pourcentage_contrat' => $formateur->getQuotite() * 100,
+                'temps_contrat' => $formateur->getVolumeContractuel() * $formateur->getQuotite(),
                 'diff_heures' => ($formateur->getQuotite() * $formateur->getVolumeContractuel()) - $totalTravail,
+                'diff_heures_prev' => ($formateur->getQuotite() * $formateur->getVolumeContractuel()) - $totalTravail_prev,
                 'ufa_percent' => $ufaPrc,
                 'fpc_percent' => $fpcPrc,
-                'ufa_semaine' => ($data['totaux']['ufa_travail'] + $data['missions']['totaux']['ufa_travail']) / 52,
-                'fpc_semaine' => ($data['totaux']['fpc_travail'] + $data['missions']['totaux']['fpc_travail']) / 52,
-                'ufa_mois' => ($data['totaux']['ufa_travail'] + $data['missions']['totaux']['ufa_travail']) / 12,
-                'fpc_mois' => ($data['totaux']['fpc_travail'] + $data['missions']['totaux']['fpc_travail']) / 12,
-                'total_mois' => $totalTravail / 12,
+                'ufa_percent_prev' => $ufaPrc_prev,
+                'fpc_percent_prev' => $fpcPrc_prev,
+                'ufa_semaine' => $ufaPrc * 35,
+                'fpc_semaine' => $fpcPrc * 35,
+                'ufa_semaine_prev' => $ufaPrc_prev * 35,
+                'fpc_semaine_prev' => $fpcPrc_prev * 35,
+                'ufa_mois' => $ufaPrc * 151.67,
+                'fpc_mois' => $fpcPrc * 151.67,
+                'ufa_mois_prev' => $ufaPrc_prev * 151.67,
+                'fpc_mois_prev' => $fpcPrc_prev * 151.67,
+                'total_mois' => ($ufaPrc + $fpcPrc) * 151.67,
+                'total_mois_prev' => ($ufaPrc_prev +$fpcPrc_prev) * 151.67,
             ];
         }
-
         return $data;
     }
 

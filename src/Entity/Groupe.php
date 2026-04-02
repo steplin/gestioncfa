@@ -19,6 +19,9 @@ class Groupe
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $code = null;
 
+    #[ORM\Column(type: 'string', length: 50)]
+    private ?string $abrege = null;
+
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nom = null;
 
@@ -40,6 +43,10 @@ class Groupe
      */
     #[ORM\Column(type: 'integer')]
     private int $niveauDecoupage = 1;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $prioritaire = true;
+
 
     /**
      * Seances rattachees a ce groupe
@@ -233,5 +240,26 @@ class Groupe
     public function setClasses(Collection $classes): void
     {
         $this->classes = $classes;
+    }
+
+    public function getAbrege(): ?string
+    {
+        return $this->abrege;
+    }
+
+    public function setAbrege(?string $abrege): static
+    {
+        $this->abrege = $abrege;
+        return $this;
+    }
+
+    public function isPrioritaire(): bool
+    {
+        return $this->prioritaire;
+    }
+
+    public function setPrioritaire(bool $prioritaire): void
+    {
+        $this->prioritaire = $prioritaire;
     }
 }

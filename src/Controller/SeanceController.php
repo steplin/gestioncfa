@@ -7,6 +7,7 @@ use App\Entity\Formateur;
 use App\Entity\Groupe;
 use App\Entity\Seance;
 use App\Entity\Session;
+use App\Form\ClasseSeanceNewType;
 use App\Form\SeanceMissionType;
 use App\Form\SeanceNewType;
 use App\Form\SeanceType;
@@ -164,5 +165,105 @@ class SeanceController extends AbstractController
         }
 
         return $this->json($out);
+    }
+
+    #[\Symfony\Component\Routing\Attribute\Route('/classe/seance/{id}/edit', name: 'classe_seance_edit')]
+    public function editModalByClasse(
+        Seance                 $seance,
+        Request                $request,
+        EntityManagerInterface $em
+    ): Response
+    {
+
+        $form = $this->createForm(SeanceType::class, $seance, [
+            'groupes' => $seance->getClasse()->getGroupes()->toArray(),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            $em->flush();
+
+            if ($request->isXmlHttpRequest()) {
+                return $this->json(['success' => true]);
+            }
+
+            return $this->redirectToRoute('classe_dashboard', [
+                'session' => $seance->getSession()->getId(),
+                'classe' => $seance->getClasse(),
+            ]);
+        }
+
+        return $this->render('classe/seance/edit.html.twig', [
+            'form' => $form->createView(),
+            'seance' => $seance,
+
+        ]);
+    }
+
+    #[Route('/classe/seance/new/{session}/{classe}/{groupe}', name: 'classe_seance_new')]
+    public function newByClasse(
+        Session                $session,
+        Groupe                 $groupe,
+        Classe                 $classe,
+        Request                $request,
+        EntityManagerInterface $em,
+        TypeActiviteRepository $typeActiviteRepository
+    ): Response
+    {
+        $groupes = $classe->getGroupes()->toArray();
+        $seance = new Seance();
+        $seance->setSession($session);
+        $seance->setGroupe($groupe);
+        $seance->setClasse($classe);
+        $seance->setTypeActivite($typeActiviteRepository->findOneBy(['code' => 'COURS']));
+
+        $form = $this->createForm(ClasseSeanceNewType::class, $seance, ['groupes' => $groupes]);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            $em->persist($seance);
+            $em->flush();
+
+            if ($request->isXmlHttpRequest()) {
+                return $this->json(['success' => true]);
+            }
+
+            return $this->redirectToRoute('classe_dashboard', [
+                'session' => $session->getId(),
+                'classe' => $classe->getId(),
+            ]);
+        }
+
+        return $this->render('classe/seance/new.html.twig', [
+            'form' => $form->createView(),
+            'seance' => $seance,
+            'session' => $session,
+            'groupe' => $groupe,
+            'classe' => $classe,
+        ]);
+    }
+
+    #[Route('/classe/seance/{id}/delete', name: 'classe_seance_delete', methods: ['POST'])]
+    public function deleteByClasse(
+        Seance                 $seance,
+        Request                $request,
+        EntityManagerInterface $em
+    ): Response
+    {
+
+        $classe = $seance->getClasse();
+        $session = $seance->getSession();
+        if ($request->isXmlHttpRequest()) {
+
+            $em->remove($seance);
+            $em->flush();
+
+            return $this->json(['success' => true]);
+        }
+
+        return $this->redirectToRoute('classe_dashboard', ['session' => $session->getId(), 'classe' => $classe->getId()]);
     }
 }

@@ -32,10 +32,11 @@ class FormateurCrudController extends AbstractCrudController
         yield EmailField::new('email', 'Email');
 
         yield NumberField::new('quotite', 'Temps de travail')
-            ->setNumDecimals(2);
+            ->setNumDecimals(4);
 
         yield NumberField::new('volumeContractuel', 'Volume contractuel annuel')
             ->setNumDecimals(2)
             ->hideOnIndex();
+        yield TextField::new('initiales', 'Initiales');
     }
 }

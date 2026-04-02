@@ -23,6 +23,10 @@ class Classe
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $code = null;
 
+    #[ORM\Column(type: 'string', length: 50)]
+    private ?string $abrege = null;
+
+
     #[ORM\Column(type: 'string', length: 30)]
     private ?string $type = null;
     // apprentissage | continue
@@ -42,6 +46,12 @@ class Classe
     #[ORM\JoinTable(name: 'classe_groupe')]
     private Collection $groupes;
 
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $pfreel = null;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $pfprev = null;
     public function __construct()
     {
         $this->groupes = new ArrayCollection();
@@ -178,8 +188,54 @@ class Classe
         return sprintf('%s (%s)', $this->nom, $this->code);
     }
 
+    public function setAbrege(?string $abrege): static
+    {
+        $this->abrege = $abrege;
+        return $this;
+    }
+
+    public function getAbrege(): ?string
+    {
+        return $this->abrege;
+    }
+    public function updatePf(iterable $seances): array
+    {
+        $totaux = [
+            'reel' => 0.0,
+            'prev' => 0.0,
+        ];
+
+        foreach ($seances as $seance) {
+            $totaux['reel'] += (float)($seance->getVolumeHeuresGroupe() ?? 0);
+            $totaux['prev'] += (float)($seance->getVolumeHeuresGroupePrevisionnel() ?? 0);
+        }
+        $this->setPfreel($totaux['reel']);
+        $this->setPfprev($totaux['prev']);
+        return $totaux;
+    }
+
     public function __toString(): string
     {
         return $this->getLibelleComplet();
+    }
+
+    public function getPfreel(): ?int
+    {
+        return $this->pfreel;
+    }
+
+    public function setPfreel(?int $pfreel): void
+    {
+        $this->pfreel = $pfreel;
+    }
+
+    public function getPfprev(): ?int
+    {
+        return $this->pfprev;
+    }
+
+    public function setPfprev(?int $pfprev): void
+    {
+        $this->pfprev = $pfprev;
     }
 }

@@ -210,14 +210,6 @@ class Session
     {
         $libelle = $this->dateDebut?->format('d/m/Y') . ' - ' . $this->dateFin?->format('d/m/Y');
 
-        if ($this->type === 'reel') {
-            $libelle .= ' - Reel';
-        }
-
-        if ($this->type === 'previsionnel' && $this->version !== null) {
-            $libelle .= ' - Previsionnel V' . $this->version;
-        }
-
         return $libelle;
     }
 

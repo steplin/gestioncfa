@@ -2,9 +2,10 @@
 
 namespace App\Entity;
 
+use App\Repository\SeanceRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: SeanceRepository::class)]
 #[ORM\Table(name: 'seance')]
 class Seance
 {
@@ -157,6 +158,10 @@ class Seance
     public function getVolumePondereFormateur(): float
     {
         return (float)$this->volumeHeuresFormateur * (float)$this->typeActivite->getCoefficientDefaut();
+    }
+    public function getVolumePondereFormateurPrev(): float
+    {
+        return (float)$this->volumeHeuresFormateurPrevisionnel * (float)$this->typeActivite->getCoefficientDefaut();
     }
 
     public function getVolumePondereGroupe(): float

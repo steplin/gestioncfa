@@ -1,9 +1,11 @@
 <?php
 
 namespace App\Form;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+
 use App\Entity\Formateur;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -13,7 +15,15 @@ class FormateurSelectType extends AbstractType
     {
         $builder->add('formateur', EntityType::class, [
             'class' => Formateur::class,
-            'choice_label' => fn(Formateur $f) => $f->getNom().' '.$f->getPrenom(),
+            'choice_label' => fn(Formateur $f) => $f->getNom() . ' ' . $f->getPrenom(),
+            'required' => false,
+            'attr' => [
+                'class' => 'select2 width-100',
+                'onchange' => 'this.form.submit()'
+            ]
+        ])
+            ->add('mode', choiceType::class, [
+            'choices' => ['Réel' => 'reel', 'Previsionnel' => 'prev', 'Compare' => 'both'],
             'required' => false,
             'attr' => [
                 'class' => 'select2 width-100',

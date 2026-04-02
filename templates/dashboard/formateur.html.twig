@@ -3,17 +3,29 @@
 {% block body %}
     <div class="container">
     <div class="text-right">
-        <a href="{{ path('export_formateur_excel', {'formateur': formateur.id, 'session': session.id}) }}"
+        <a href="{{ path('export_formateur_excel', {'formateur': formateur.id, 'session': session.id, 'mode':mode}) }}"
            class="btn btn-info">Export excel</a>
+        <a href="{{ path('export_formateurs_session', {'id': session.id, 'mode':mode}) }}"
+           class="btn btn-primary">Export Fiches formateurs</a>
     </div>
     <div class="no-print">
         <div class="row">
             {{ form_start(form, { method: 'get', attr: { class: 'form-inline' } }) }}
-            <div class="col-xs-1">
-                <label for="formateur">Formateur</label>
+            <div class="row">
+                <div class="col-xs-1">
+                    <label for="formateur">Formateur</label>
+                </div>
+                <div class="col-xs-4">
+                    {{ form_widget(form.formateur) }}
+                </div>
             </div>
-            <div class="col-xs-4">
-                {{ form_widget(form.formateur) }}
+            <div class="row mt-15">
+                <div class="col-xs-1">
+                    <label for="mode">Mode</label>
+                </div>
+                <div class="col-xs-4">
+                    {{ form_widget(form.mode) }}
+                </div>
             </div>
         </div>
 
@@ -23,91 +35,320 @@
         <h3 class="text-center" style="margin-bottom:30px;">
             {{ formateur.nom }} {{ formateur.prenom }}
             <br>
-            <small>Fiche horaire prévisionnelle {{ session.libelle }}</small>
+            <small>Fiche horaire {{ mode=="prev"?"Prévisionnelle " }}{{ session.libelle }}</small>
         </h3>
 
         <table class="table table-bordered table-condensed">
 
             <thead>
             <tr>
-                <th rowspan="2" class="text-center" style="vertical-align: middle;">
+                <th rowspan="{{ mode!='both'? 2:3 }}" class="text-center" style="vertical-align: middle;">
                     ACTE DE FORMATION
                 </th>
-                <th colspan="2" class="text-center">Apprentissage</th>
-                <th colspan="2" class="text-center">Continue</th>
+
+                <th colspan="{{ mode!='both'? 2:6 }}" class="text-center">Apprentissage</th>
+                <th colspan="{{ mode!='both'? 2:6 }}" class="text-center">Continue</th>
             </tr>
+
             <tr>
-                <th class="text-center">F à F</th>
-                <th class="text-center">Temps travail</th>
-                <th class="text-center">F à F</th>
-                <th class="text-center">Temps travail</th>
+                <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">F à F</th>
+                <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">Temps travail</th>
+                <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">F à F</th>
+                <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">Temps travail</th>
             </tr>
+
+            {% if mode == 'both' %}
+                <tr>
+                    {% for i in 1..4 %}
+                        <th class="text-center">Réel</th>
+                        <th class="text-center"><strong>Prév.</strong></th>
+                        <th class="text-center">Écart</th>
+                    {% endfor %}
+                </tr>
+            {% endif %}
             </thead>
 
             <tbody>
 
             {% for classe, bloc in data.classes %}
+
                 {% set total_ufa_face = 0 %}
                 {% set total_ufa_travail = 0 %}
                 {% set total_fpc_face = 0 %}
                 {% set total_fpc_travail = 0 %}
+                {% set total_ufa_face_prev = 0 %}
+                {% set total_ufa_travail_prev = 0 %}
+                {% set total_fpc_face_prev = 0 %}
+                {% set total_fpc_travail_prev = 0 %}
 
                 <tr style="background:{{ bloc.couleur }}">
-                    <td colspan="5"><strong>{{ classe }}</strong></td>
+                    <td colspan="{{ mode!='both'? 5:13 }}"><strong>{{ classe }}</strong></td>
                 </tr>
 
                 {% for groupe, lignes in bloc.groupes %}
 
-                    <tr style="background:#f5f5f5;" class="">
-                        <td colspan="5" style="padding-left:20px;">
+                    <tr style="background:#f5f5f5;">
+                        <td colspan="{{ mode!='both'? 5:13 }}" style="padding-left:20px;">
                             <strong>{{ groupe }}</strong>
                             <a class="open-ajax-modal pull-right"
                                data-url="{{ path('seance_new', {'formateur': formateur.id, 'groupe': bloc.groupe_id, 'session': session.id,'classe':bloc.classe_id}) }}"
-                               data-title="Ajouter une séance"><span class="fa fa-plus text-info"></span>
+                               data-title="Ajouter une séance"><span class="fa fa-plus text-info no-print"></span>
                             </a>
                         </td>
                     </tr>
 
                     {% for ligne in lignes %}
+
                         {% set total_ufa_face = total_ufa_face + ligne.ufa_face %}
                         {% set total_ufa_travail = total_ufa_travail + ligne.ufa_travail %}
                         {% set total_fpc_face = total_fpc_face + ligne.fpc_face %}
                         {% set total_fpc_travail = total_fpc_travail + ligne.fpc_travail %}
+                        {% set total_ufa_face_prev = total_ufa_face_prev + ligne.ufa_face_prev %}
+                        {% set total_ufa_travail_prev = total_ufa_travail_prev + ligne.ufa_travail_prev %}
+                        {% set total_fpc_face_prev = total_fpc_face_prev + ligne.fpc_face_prev %}
+                        {% set total_fpc_travail_prev = total_fpc_travail_prev + ligne.fpc_travail_prev %}
+
                         <tr>
                             <td style="padding-left:40px;">{{ ligne.matiere }}
                                 <a class="pull-right open-ajax-modal"
                                    data-url="{{ path('seance_edit', {id: ligne.id}) }}"
                                    data-title="Modifier la séance">
-                                    <span class="fa fa-edit text-info"></span>
+                                    <span class="fa fa-edit text-info no-print"></span>
                                 </a>
                             </td>
-                            <td class="text-center">{{ ligne.ufa_face|number_format(2, ',', ' ') }}</td>
-                            <td class="text-center">{{ ligne.ufa_travail|number_format(2, ',', ' ') }}</td>
-                            <td class="text-center">{{ ligne.fpc_face|number_format(2, ',', ' ') }}</td>
-                            <td class="text-center">{{ ligne.fpc_travail|number_format(2, ',', ' ') }}</td>
 
+                            {% if mode == 'reel' %}
+
+                                <td class="text-center">{{ ligne.ufa_face != 0 ? ligne.ufa_face|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">{{ ligne.ufa_travail != 0 ? ligne.ufa_travail|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">{{ ligne.fpc_face != 0 ? ligne.fpc_face|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">{{ ligne.fpc_travail != 0 ? ligne.fpc_travail|number_format(2,'.','') : '' }}</td>
+
+                            {% elseif mode == 'prev' %}
+
+                                <td class="text-center">
+                                    <strong>{{ ligne.ufa_face_prev != 0 ? ligne.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.ufa_travail_prev != 0 ? ligne.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.fpc_face_prev != 0 ? ligne.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.fpc_travail_prev != 0 ? ligne.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+
+                            {% else %}
+
+                                {% set ec1 = ligne.ufa_face - ligne.ufa_face_prev %}
+                                {% set ec2 = ligne.ufa_travail - ligne.ufa_travail_prev %}
+                                {% set ec3 = ligne.fpc_face - ligne.fpc_face_prev %}
+                                {% set ec4 = ligne.fpc_travail - ligne.fpc_travail_prev %}
+
+                                <td class="text-center">{{ ligne.ufa_face != 0 ? ligne.ufa_face|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.ufa_face_prev != 0 ? ligne.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center {{ ec1 > 0 ? 'text-success' : (ec1 < 0 ? 'text-danger' : '') }}">
+                                    {{ ec1 != 0 ? ec1|number_format(2,'.','') : '' }}
+                                </td>
+
+                                <td class="text-center">{{ ligne.ufa_travail != 0 ? ligne.ufa_travail|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.ufa_travail_prev != 0 ? ligne.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center {{ ec2 > 0 ? 'text-success' : (ec2 < 0 ? 'text-danger' : '') }}">
+                                    {{ ec2 != 0 ? ec2|number_format(2,'.','') : '' }}
+                                </td>
+
+                                <td class="text-center">{{ ligne.fpc_face != 0 ? ligne.fpc_face|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.fpc_face_prev != 0 ? ligne.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center {{ ec3 > 0 ? 'text-success' : (ec3 < 0 ? 'text-danger' : '') }}">
+                                    {{ ec3 != 0 ? ec3|number_format(2,'.','') : '' }}
+                                </td>
+
+                                <td class="text-center">{{ ligne.fpc_travail != 0 ? ligne.fpc_travail|number_format(2,'.','') : '' }}</td>
+                                <td class="text-center">
+                                    <strong>{{ ligne.fpc_travail_prev != 0 ? ligne.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                                </td>
+                                <td class="text-center {{ ec4 > 0 ? 'text-success' : (ec4 < 0 ? 'text-danger' : '') }}">
+                                    {{ ec4 != 0 ? ec4|number_format(2,'.','') : '' }}
+                                </td>
+
+                            {% endif %}
                         </tr>
-                    {% endfor %}
 
+                    {% endfor %}
                 {% endfor %}
                 <tr style="background:#d9edf7; font-weight:bold;">
                     <td>Sous-total {{ classe }}</td>
-                    <td class="text-center">{{ total_ufa_face|number_format(2, ',', ' ') }}</td>
-                    <td class="text-center">{{ total_ufa_travail|number_format(2, ',', ' ') }}</td>
-                    <td class="text-center">{{ total_fpc_face|number_format(2, ',', ' ') }}</td>
-                    <td class="text-center">{{ total_fpc_travail|number_format(2, ',', ' ') }}</td>
+
+                    {% if mode == 'reel' %}
+
+                        <td class="text-center">
+                            {{ total_ufa_face != 0 ? total_ufa_face|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center">
+                            {{ total_ufa_travail != 0 ? total_ufa_travail|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center">
+                            {{ total_fpc_face != 0 ? total_fpc_face|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center">
+                            {{ total_fpc_travail != 0 ? total_fpc_travail|number_format(2,'.','') : '' }}
+                        </td>
+
+                    {% elseif mode == 'prev' %}
+
+                        <td class="text-center"><strong>
+                                {{ total_ufa_face_prev != 0 ? total_ufa_face_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center"><strong>
+                                {{ total_ufa_travail_prev != 0 ? total_ufa_travail_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center"><strong>
+                                {{ total_fpc_face_prev != 0 ? total_fpc_face_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center"><strong>
+                                {{ total_fpc_travail_prev != 0 ? total_fpc_travail_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+
+                    {% else %}
+
+                        {% set ec1 = total_ufa_face - total_ufa_face_prev %}
+                        {% set ec2 = total_ufa_travail - total_ufa_travail_prev %}
+                        {% set ec3 = total_fpc_face - total_fpc_face_prev %}
+                        {% set ec4 = total_fpc_travail - total_fpc_travail_prev %}
+
+                        <td class="text-center">
+                            {{ total_ufa_face != 0 ? total_ufa_face|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center"><strong>
+                                {{ total_ufa_face_prev != 0 ? total_ufa_face_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center {{ ec1 > 0 ? 'text-success' : (ec1 < 0 ? 'text-danger' : '') }}">
+                            {{ ec1 != 0 ? ec1|number_format(2,'.','') : '' }}
+                        </td>
+
+                        <td class="text-center">
+                            {{ total_ufa_travail != 0 ? total_ufa_travail|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center"><strong>
+                                {{ total_ufa_travail_prev != 0 ? total_ufa_travail_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center {{ ec2 > 0 ? 'text-success' : (ec2 < 0 ? 'text-danger' : '') }}">
+                            {{ ec2 != 0 ? ec2|number_format(2,'.','') : '' }}
+                        </td>
+
+                        <td class="text-center">
+                            {{ total_fpc_face != 0 ? total_fpc_face|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center"><strong>
+                                {{ total_fpc_face_prev != 0 ? total_fpc_face_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center {{ ec3 > 0 ? 'text-success' : (ec3 < 0 ? 'text-danger' : '') }}">
+                            {{ ec3 != 0 ? ec3|number_format(2,'.','') : '' }}
+                        </td>
+
+                        <td class="text-center">
+                            {{ total_fpc_travail != 0 ? total_fpc_travail|number_format(2,'.','') : '' }}
+                        </td>
+                        <td class="text-center"><strong>
+                                {{ total_fpc_travail_prev != 0 ? total_fpc_travail_prev|number_format(2,'.','') : '' }}
+                            </strong></td>
+                        <td class="text-center {{ ec4 > 0 ? 'text-succcess' : (ec4 < 0 ? 'text-danger' : '') }}">
+                            {{ ec4 != 0 ? ec4|number_format(2,'.','') : '' }}
+                        </td>
+
+                    {% endif %}
                 </tr>
             {% endfor %}
-
             <!-- TOTALS -->
             <tr style="background:#ffe699;">
                 <td><strong>TOTAL HEURES</strong></td>
-                <td class="text-center"><strong>{{ data.totaux.ufa_face|number_format(2, ',', ' ') }}</strong></td>
-                <td class="text-center"><strong>{{ data.totaux.ufa_travail|number_format(2, ',', ' ') }}</strong></td>
-                <td class="text-center"><strong>{{ data.totaux.fpc_face|number_format(2, ',', ' ') }}</strong></td>
-                <td class="text-center"><strong>{{ data.totaux.fpc_travail|number_format(2, ',', ' ') }}</strong></td>
-            </tr>
 
+                {% if mode == 'reel' %}
+
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_face != 0 ? data.totaux.ufa_face|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_travail != 0 ? data.totaux.ufa_travail|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_face != 0 ? data.totaux.fpc_face|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_travail != 0 ? data.totaux.fpc_travail|number_format(2,'.','') : '' }}</strong>
+                    </td>
+
+                {% elseif mode == 'prev' %}
+
+                    <td class="text-center"><strong>
+                            {{ data.totaux.ufa_face_prev != 0 ? data.totaux.ufa_face_prev|number_format(2,'.','') : '' }}
+                        </strong></td>
+                    <td class="text-center"><strong>
+                            {{ data.totaux.ufa_travail_prev != 0 ? data.totaux.ufa_travail_prev|number_format(2,'.','') : '' }}
+                        </strong></td>
+                    <td class="text-center"><strong>
+                            {{ data.totaux.fpc_face_prev != 0 ? data.totaux.fpc_face_prev|number_format(2,'.','') : '' }}
+                        </strong></td>
+                    <td class="text-center"><strong>
+                            {{ data.totaux.fpc_travail_prev != 0 ? data.totaux.fpc_travail_prev|number_format(2,'.','') : '' }}
+                        </strong></td>
+
+                {% else %}
+
+                    {% set ec1 = data.totaux.ufa_face - data.totaux.ufa_face_prev %}
+                    {% set ec2 =  data.totaux.ufa_travail - data.totaux.ufa_travail_prev %}
+                    {% set ec3 = data.totaux.fpc_face-data.totaux.fpc_face_prev %}
+                    {% set ec4 = data.totaux.fpc_travail - data.totaux.fpc_travail_prev %}
+
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_face != 0 ? data.totaux.ufa_face|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_face_prev != 0 ? data.totaux.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center {{ ec1 > 0 ? 'text-success' : (ec1 < 0 ? 'text-danger' : '') }}">
+                        <strong>{{ ec1 != 0 ? ec1|number_format(2,'.','') : '' }}</strong>
+                    </td>
+
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_travail != 0 ? data.totaux.ufa_travail|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.ufa_travail_prev != 0 ? data.totaux.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center {{ ec2 > 0 ? 'text-success' : (ec2 < 0 ? 'text-danger' : '') }}">
+                        <strong>{{ ec2 != 0 ? ec2|number_format(2,'.','') : '' }}</strong>
+                    </td>
+
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_face != 0 ? data.totaux.fpc_face|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_face_prev != 0 ? data.totaux.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center {{ ec3 > 0 ? 'text-success' : (ec3 < 0 ? 'text-danger' : '') }}">
+                        <strong>{{ ec3 != 0 ? ec3|number_format(2,'.','') : '' }}</strong>
+                    </td>
+
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_travail != 0 ? data.totaux.fpc_travail|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.totaux.fpc_travail_prev != 0 ? data.totaux.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                    </td>
+                    <td class="text-center {{ ec4 > 0 ? 'text-success' : (ec4 < 0 ? 'text-danger' : '') }}">
+                        <strong>{{ ec4 != 0 ? ec4|number_format(2,'.','') : '' }}</strong>
+                    </td>
+
+                {% endif %}
+            </tr>
             </tbody>
         </table>
 
@@ -117,31 +358,48 @@
             <h4 style="margin-top:40px;">MISSIONS / AUTRES ACTIVITÉS</h4>
 
             <table class="table table-bordered table-condensed">
+
                 <thead>
                 <tr>
-                    <th rowspan="2" class="text-center" style="vertical-align: middle;">
+                    <th rowspan="{{ mode!='both'? 2:3 }}" class="text-center" style="vertical-align: middle;">
                         MISSIONS
                         <a class="pull-right open-ajax-modal"
                            data-url="{{ path('seance_new_mission',{'formateur':formateur.id,'session':session.id}) }}"
                            data-title="Ajouter une mission">
-                            <span class="fa fa-plus text-info"></span>
+                            <span class="fa fa-plus text-info no-print"></span>
                         </a>
                     </th>
-                    <th colspan="2" class="text-center">Apprentissage</th>
-                    <th colspan="2" class="text-center">Continue</th>
+                    <th colspan="{{ mode!='both'? 2:6 }}" class="text-center">Apprentissage</th>
+                    <th colspan="{{ mode!='both'? 2:6 }}" class="text-center">Continue</th>
                 </tr>
                 <tr>
-                    <th class="text-center">F à F</th>
-                    <th class="text-center">Temps travail</th>
-                    <th class="text-center">F à F</th>
-                    <th class="text-center">Temps travail</th>
+                    <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">F à F</th>
+                    <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">Temps travail</th>
+                    <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">F à F</th>
+                    <th colspan="{{ mode!='both'? 1:3 }}" class="text-center">Temps travail</th>
                 </tr>
+
+                {% if mode == 'both' %}
+                    <tr>
+                        {% for i in 1..4 %}
+                            <th class="text-center">Réel</th>
+                            <th class="text-center"><strong>Prév.</strong></th>
+                            <th class="text-center">Écart</th>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
                 </thead>
 
                 <tbody>
 
                 {# 🔹 LIGNES MISSIONS #}
                 {% for m in data.missions.lignes %}
+
+                    {% set ec1 = m.ufa_face - m.ufa_face_prev %}
+                    {% set ec2 = m.ufa_travail - m.ufa_travail_prev %}
+                    {% set ec3 = m.fpc_face - m.fpc_face_prev %}
+                    {% set ec4 = m.fpc_travail - m.fpc_travail_prev %}
+
                     <tr>
                         <td>
                             {{ m.libelle }}
@@ -151,135 +409,275 @@
                             <a class="pull-right open-ajax-modal"
                                data-url="{{ path('seance_edit', {id: m.id}) }}"
                                data-title="Modifier la séance">
-                                <span class="fa fa-edit text-info"></span>
+                                <span class="fa fa-edit text-info no-print"></span>
                             </a>
-
                         </td>
-                        <td class="text-center">{{ m.ufa_face|number_format(2, ',', ' ') }}</td>
-                        <td class="text-center">{{ m.ufa_travail|number_format(2, ',', ' ') }}</td>
-                        <td class="text-center">{{ m.fpc_face|number_format(2, ',', ' ') }}</td>
-                        <td class="text-center">{{ m.fpc_travail|number_format(2, ',', ' ') }}</td>
+
+                        {% if mode == 'reel' %}
+
+                            <td class="text-center">{{ m.ufa_face != 0 ? m.ufa_face|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">{{ m.ufa_travail != 0 ? m.ufa_travail|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">{{ m.fpc_face != 0 ? m.fpc_face|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">{{ m.fpc_travail != 0 ? m.fpc_travail|number_format(2,'.','') : '' }}</td>
+
+                        {% elseif mode == 'prev' %}
+
+                            <td class="text-center">
+                                <strong>{{ m.ufa_face_prev != 0 ? m.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <strong>{{ m.ufa_travail_prev != 0 ? m.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <strong>{{ m.fpc_face_prev != 0 ? m.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <strong>{{ m.fpc_travail_prev != 0 ? m.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+
+                        {% else %}
+
+                            <td class="text-center">{{ m.ufa_face != 0 ? m.ufa_face|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">
+                                <strong>{{ m.ufa_face_prev != 0 ? m.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center {{ ec1 > 0 ? 'text-danger' : (ec1 < 0 ? 'text-danger' : '') }}">
+                                {{ ec1 != 0 ? ec1|number_format(2,'.','') : '' }}
+                            </td>
+
+                            <td class="text-center">{{ m.ufa_travail != 0 ? m.ufa_travail|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">
+                                <strong>{{ m.ufa_travail_prev != 0 ? m.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center {{ ec2 > 0 ? 'text-success' : (ec2 < 0 ? 'text-danger' : '') }}">
+                                {{ ec2 != 0 ? ec2|number_format(2,'.','') : '' }}
+                            </td>
+
+                            <td class="text-center">{{ m.fpc_face != 0 ? m.fpc_face|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">
+                                <strong>{{ m.fpc_face_prev != 0 ? m.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center {{ ec3 > 0 ? 'text-success' : (ec3 < 0 ? 'text-danger' : '') }}">
+                                {{ ec3 != 0 ? ec3|number_format(2,'.','') : '' }}
+                            </td>
+
+                            <td class="text-center">{{ m.fpc_travail != 0 ? m.fpc_travail|number_format(2,'.','') : '' }}</td>
+                            <td class="text-center">
+                                <strong>{{ m.fpc_travail_prev != 0 ? m.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                            </td>
+                            <td class="text-center {{ ec4 > 0 ? 'text-success' : (ec4 < 0 ? 'text-danger' : '') }}">
+                                {{ ec4 != 0 ? ec4|number_format(2,'.','') : '' }}
+                            </td>
+
+                        {% endif %}
                     </tr>
                 {% endfor %}
 
-                {# 🔹 TOTAL DETAILLE MISSIONS #}
+                {# 🔹 TOTAL MISSIONS DETAILLE #}
                 <tr style="background:#d9edf7; font-weight:bold;">
                     <td><strong>TOTAL MISSIONS</strong></td>
-                    <td class="text-center">
-                        {{ data.missions.totaux.ufa_face|number_format(2, ',', ' ') }}
-                    </td>
-                    <td class="text-center">
-                        {{ data.missions.totaux.ufa_travail|number_format(2, ',', ' ') }}
-                    </td>
-                    <td class="text-center">
-                        {{ data.missions.totaux.fpc_face|number_format(2, ',', ' ') }}
-                    </td>
-                    <td class="text-center">
-                        {{ data.missions.totaux.fpc_travail|number_format(2, ',', ' ') }}
-                    </td>
-                </tr>
 
-                {# 🔹 TOTAL GLOBAL MISSION (si tu veux garder ton ancien total) #}
-                <tr style="background:#f5f5f5">
-                    <td><strong>Total temps travail mission</strong></td>
-                    <td colspan="4" class="text-center">
-                        <strong>{{ data.totaux.mission|number_format(2, ',', ' ') }}</strong>
-                    </td>
+                    {% if mode == 'reel' %}
+
+                        <td class="text-center">{{ data.missions.totaux.ufa_face != 0 ? data.missions.totaux.ufa_face|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">{{ data.missions.totaux.ufa_travail != 0 ? data.missions.totaux.ufa_travail|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">{{ data.missions.totaux.fpc_face != 0 ? data.missions.totaux.fpc_face|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">{{ data.missions.totaux.fpc_travail != 0 ? data.missions.totaux.fpc_travail|number_format(2,'.','') : '' }}</td>
+
+                    {% elseif mode == 'prev' %}
+
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.ufa_face_prev != 0 ? data.missions.totaux.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.ufa_travail_prev != 0 ? data.missions.totaux.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.fpc_face_prev != 0 ? data.missions.totaux.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.fpc_travail_prev != 0 ? data.missions.totaux.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+
+                    {% else %}
+
+                        {% set ec1 = data.missions.totaux.ufa_face - data.missions.totaux.ufa_face_prev %}
+                        {% set ec2 = data.missions.totaux.ufa_travail - data.missions.totaux.ufa_travail_prev %}
+                        {% set ec3 = data.missions.totaux.fpc_face - data.missions.totaux.fpc_face_prev %}
+                        {% set ec4 = data.missions.totaux.fpc_travail - data.missions.totaux.fpc_travail_prev %}
+
+                        <td class="text-center">{{ data.missions.totaux.ufa_face != 0 ? data.missions.totaux.ufa_face|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.ufa_face_prev != 0 ? data.missions.totaux.ufa_face_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center {{ ec1 > 0 ? 'text-success' : (ec1 < 0 ? 'text-danger' : '') }}">{{ ec1 != 0 ? ec1|number_format(2,'.','') : '' }}</td>
+
+                        <td class="text-center">{{ data.missions.totaux.ufa_travail != 0 ? data.missions.totaux.ufa_travail|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.ufa_travail_prev != 0 ? data.missions.totaux.ufa_travail_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center {{ ec2 > 0 ? 'text-success' : (ec2 < 0 ? 'text-danger' : '') }}">{{ ec2 != 0 ? ec2|number_format(2,'.','') : '' }}</td>
+
+                        <td class="text-center">{{ data.missions.totaux.fpc_face != 0 ? data.missions.totaux.fpc_face|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.fpc_face_prev != 0 ? data.missions.totaux.fpc_face_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center {{ ec3 > 0 ? 'text-success' : (ec3 < 0 ? 'text-danger' : '') }}">{{ ec3 != 0 ? ec3|number_format(2,'.','') : '' }}</td>
+
+                        <td class="text-center">{{ data.missions.totaux.fpc_travail != 0 ? data.missions.totaux.fpc_travail|number_format(2,'.','') : '' }}</td>
+                        <td class="text-center">
+                            <strong>{{ data.missions.totaux.fpc_travail_prev != 0 ? data.missions.totaux.fpc_travail_prev|number_format(2,'.','') : '' }}</strong>
+                        </td>
+                        <td class="text-center {{ ec4 > 0 ? 'text-success' : (ec4 < 0 ? 'text-danger' : '') }}">{{ ec4 != 0 ? ec4|number_format(2,'.','') : '' }}</td>
+
+                    {% endif %}
                 </tr>
 
                 </tbody>
             </table>
         {% endif %}
-
         {% if data.analytique is defined and data.analytique is not empty %}
 
             <h4 style="margin-top:40px;">ANALYTIQUE</h4>
 
             <table class="table table-bordered">
+
                 <thead>
                 <tr style="background-color:#f5f5f5">
                     <th>Indicateur</th>
-                    <th class="text-center" style="width: 25%"><strong>Prévisionnel</strong></th>
                     <th class="text-center" style="width: 25%"><strong>Réel</strong></th>
+                    <th class="text-center" style="width: 25%"><strong>Prévisionnel</strong></th>
+                    <th class="text-center" style="width: 20%">Écart</th>
                 </tr>
                 </thead>
 
                 <tbody>
 
-                {# Pourcentage réalisé #}
+                {# ================= POURCENTAGE ================= #}
+                {% if mode=="prev" %}
+                    {% set ecart_pourcentage =  data.analytique.pourcentage_prev - data.analytique.pourcentage_contrat %}
+
+                {% else %}
+                    {% set ecart_pourcentage = data.analytique.pourcentage - data.analytique.pourcentage_prev %}
+                {% endif %}
                 <tr>
-                    <td>Pourcentage</td>
-                    <td class="text-right">
-                        {{ data.analytique.pourcentage_previsitionnel|number_format(1, ',', ' ') }} %
-                    </td>
-                    <td class="text-right">
-                <span class="label
-                    {% if data.analytique.pourcentage >= data.analytique.pourcentage_previsitionnel|number_format(1, ',', ' ') %}
-                        label-success
-                    {% elseif data.analytique.pourcentage >= 80 %}
-                        label-warning
-                    {% else %}
-                        label-danger
-                    {% endif %}
-                ">
-                    {{ data.analytique.pourcentage|number_format(1, ',', ' ') }} %
-                </span>
+                    <td>Pourcentage (Contrat : {{ data.analytique.pourcentage_contrat|number_format(1,'.','') ~ ' %' }}
+                        )
                     </td>
 
-                </tr>
 
-                {# Différence heures #}
-                <tr>
-                    <td>Différence d'heures</td>
-                    <td class="text-center" colspan="2">
-                <span
-                    class="label {% if data.analytique.diff_heures > 0 %}label-danger{% else %}label-success{% endif %}">
-                    {{ data.analytique.diff_heures|number_format(1, ',', ' ') }} h
-                </span>
+                    <td class="text-center">
+                        {% if mode=="prev" %}
+                            _
+                        {% else %}
+                            {{ data.analytique.pourcentage|number_format(2,'.','') }} %
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <strong>{{ data.analytique.pourcentage_prev|number_format(2,'.','') }} %</strong>
+                    </td>
+
+                    <td class="text-center
+            {{ ecart_pourcentage > 0 ? 'text-success' : (ecart_pourcentage < 0 ? 'text-danger' : '') }}">
+                        {{ ecart_pourcentage != 0 ? ecart_pourcentage|number_format(2,'.','') ~ ' %' : '' }}
                     </td>
                 </tr>
 
+                {# ================= DIFF HEURES ================= #}
+                {% if mode=='prev' %}
+                    {% set prev_travail = data.analytique.temps_travail_prev %}
+                    {% set travail_contrat = data.analytique.temps_contrat %}
+                    {% set ecart_travail = prev_travail- travail_contrat %}
+                    {% set cfa_pct = data.analytique.ufa_percent_prev %}
+                    {% set fpc_pct = data.analytique.fpc_percent_prev %}
+                    {% set ufa_sem = data.analytique.ufa_semaine_prev %}
+                    {% set fpc_sem = data.analytique.fpc_semaine_prev %}
+                    {% set ufa_mois = data.analytique.ufa_mois_prev %}
+                    {% set fpc_mois = data.analytique.fpc_mois_prev %}
+                    {% set total_mois = data.analytique.total_mois_prev %}
+
+                {% else %}
+                    {% set ecart_heures = data.analytique.diff_heures_prev %}
+                    {% set prev_travail = data.analytique.temps_travail_prev %}
+                    {% set reel_travail = data.analytique.temps_travail %}
+                    {% set ecart_travail = reel_travail - prev_travail %}
+                    {% set cfa_pct = data.analytique.ufa_percent %}
+                    {% set fpc_pct = data.analytique.fpc_percent %}
+                    {% set ufa_sem = data.analytique.ufa_semaine %}
+                    {% set fpc_sem = data.analytique.fpc_semaine %}
+                    {% set ufa_mois = data.analytique.ufa_mois %}
+                    {% set fpc_mois = data.analytique.fpc_mois %}
+                    {% set total_mois = data.analytique.total_mois %}
+                {% endif %}
+                <tr>
+                    <td>Temps de travail (en h)</td>
+
+
+                    <td class="text-center">
+                        {% if mode=="prev" %}
+                            _
+                        {% else %}
+                            {{ reel_travail != 0 ? reel_travail|number_format(2,'.','') ~ ' h' : '' }}
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <strong>
+                            {{ prev_travail != 0 ? prev_travail|number_format(2,'.','') ~ ' h' : '' }}
+                        </strong>
+                    </td>
+                    <td class="text-center
+        {{ ecart_travail > 0 ? 'text-success' : (ecart_travail < 0 ? 'text-danger' : '') }}">
+                        {{ ecart_travail != 0 ? ecart_travail|number_format(2,'.','') ~ ' h' : '' }}
+                    </td>
+                </tr>
+
+                {# ================= REPARTITION ================= #}
                 <tr style="background-color:#f5f5f5">
                     <td><strong>Répartition UFA / FPC</strong></td>
                     <td class="text-center"><strong>UFA</strong></td>
                     <td class="text-center"><strong>FC</strong></td>
+                    <td></td>
                 </tr>
 
                 <tr>
                     <td>en %</td>
-                    <td class="text-right">
-                        {{ data.analytique.ufa_percent|number_format(1, ',', ' ') }} %
+                    <td class="text-center">
+                        {{ (cfa_pct*100)|number_format(2,'.','') }} %
                     </td>
-                    <td class="text-right">
-                        {{ data.analytique.fpc_percent|number_format(1, ',', ' ') }} %
+                    <td class="text-center">
+                        {{ (fpc_pct*100)|number_format(2,'.','') }} %
                     </td>
+                    <td></td>
                 </tr>
 
                 <tr>
                     <td>Semaine</td>
-                    <td class="text-right">
-                        {{ data.analytique.ufa_semaine|number_format(2, ',', ' ') }} h
+                    <td class="text-center">
+                        {{ ufa_sem|number_format(2,'.','') }} h
                     </td>
-                    <td class="text-right">
-                        {{ data.analytique.fpc_semaine|number_format(2, ',', ' ') }} h
+                    <td class="text-center">
+                        {{fpc_sem|number_format(2,'.','') }} h
                     </td>
+                    <td></td>
                 </tr>
 
                 <tr>
                     <td>Mois</td>
-                    <td class="text-right">
-                        {{ data.analytique.ufa_mois|number_format(1, ',', ' ') }} h
+                    <td class="text-center">
+                        {{ ufa_mois|number_format(2,'.','') }} h
                     </td>
-                    <td class="text-right">
-                        {{ data.analytique.fpc_mois|number_format(1, ',', ' ') }} h
+                    <td class="text-center">
+                        {{ fpc_mois|number_format(2,'.','') }} h
                     </td>
+                    <td></td>
                 </tr>
 
                 <tr style="background-color:#f5f5f5">
                     <td><strong>Total / mois</strong></td>
                     <td colspan="2" class="text-center">
-                        <strong>{{ data.analytique.total_mois|number_format(1, ',', ' ') }} h</strong>
+                        <strong>{{ total_mois|number_format(2,'.','') }} h</strong>
                     </td>
+                    <td></td>
                 </tr>
 
                 </tbody>
@@ -291,19 +689,90 @@
             <div class="panel-heading text-center">
                 <strong>TOTAL GENERAL</strong>
             </div>
+
             <div class="panel-body text-center">
-                <h4>
-                    Face à face : {{ data.totaux.face_face|number_format(2, ',', ' ') }} h
-                    &nbsp;&nbsp;|
-                    Temps travail : {{ data.totaux.total_travail|number_format(2, ',', ' ') }} h
-                </h4>
+
+                {% if mode == 'reel' %}
+
+                    <h4>
+                        Face à face :
+                        {{ data.totaux.face_face != 0 ? data.totaux.face_face|number_format(2,'.','') ~ ' h' : '' }}
+                        &nbsp;&nbsp;|
+                        Temps travail :
+                        {{ data.totaux.total_travail != 0 ? data.totaux.total_travail|number_format(2,'.','') ~ ' h' : '' }}
+                    </h4>
+
+                {% elseif mode == 'prev' %}
+
+                    <h4>
+                        Face à face :
+                        <strong>{{ data.totaux.face_face_prev != 0 ? data.totaux.face_face_prev|number_format(2,'.','') ~ ' h' : '' }}</strong>
+                        &nbsp;&nbsp;|
+                        Temps travail :
+                        <strong>{{ data.totaux.total_travail_prev != 0 ? data.totaux.total_travail_prev|number_format(2,'.','') ~ ' h' : '' }}</strong>
+                    </h4>
+
+                {% else %}
+
+                    {% set ec_face = data.totaux.face_face - data.totaux.face_face_prev %}
+                    {% set ec_travail = data.totaux.total_travail - data.totaux.total_travail_prev %}
+
+                    <h4>
+                        Face à face :
+                        {{ data.totaux.face_face != 0 ? data.totaux.face_face|number_format(2,'.','') ~ ' h' : '' }}
+                        /
+                        <strong>{{ data.totaux.face_face_prev != 0 ? data.totaux.face_face_prev|number_format(2,'.','') ~ ' h' : '' }}</strong>
+                        &nbsp;
+                        <span class="{{ ec_face > 0 ? 'text-success' : (ec_face < 0 ? 'text-danger' : '') }}">
+                    {{ ec_face != 0 ? '(' ~ ec_face|number_format(2,'.','') ~ ' h)' : '' }}
+                </span>
+
+                        &nbsp;&nbsp;|
+
+                        Temps travail :
+                        {{ data.totaux.total_travail != 0 ? data.totaux.total_travail|number_format(2,'.','') ~ ' h' : '' }}
+                        /
+                        <strong>{{ data.totaux.total_travail_prev != 0 ? data.totaux.total_travail_prev|number_format(2,'.','') ~ ' h' : '' }}</strong>
+                        &nbsp;
+                        <span class="{{ ec_travail > 0 ? 'text-success' : (ec_travail < 0 ? 'text-danger' : '') }}">
+                    {{ ec_travail != 0 ? '(' ~ ec_travail|number_format(2,'.','') ~ ' h)' : '' }}
+                </span>
+                    </h4>
+
+                {% endif %}
 
                 {% if data.analytique is defined %}
+
+                    {% set taux_prev = data.analytique.pourcentage_prev ?? 0 %}
+                    {% set taux_reel = data.analytique.pourcentage ?? 0 %}
+                    {% set ec_taux = taux_reel - taux_prev %}
+
                     <p class="text-muted">
                         Taux de charge :
-                        {{ data.analytique.pourcentage|number_format(1, ',', ' ') }} %
+
+                        {% if mode == 'both' %}
+
+                            {{ taux_reel|number_format(2,'.','') }} %
+                            /
+                            <strong>{{ taux_prev|number_format(2,'.','') }} %</strong>
+
+                            <span class="{{ ec_taux > 0 ? 'text-success' : (ec_taux < 0 ? 'text-danger' : '') }}">
+                        {{ ec_taux != 0 ? '(' ~ ec_taux|number_format(2,'.','') ~ ' %)' : '' }}
+                    </span>
+
+                        {% elseif mode == 'prev' %}
+
+                            <strong>{{ taux_prev|number_format(2,'.','') }} %</strong>
+
+                        {% else %}
+
+                            {{ taux_reel|number_format(2,'.','') }} %
+
+                        {% endif %}
                     </p>
+
                 {% endif %}
+
             </div>
         </div>
         </div>

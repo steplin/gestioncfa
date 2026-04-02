@@ -1,0 +1,259 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="text-right">
+            <a href="{{ path('recap_heures_excel',{session:session.id,mode:mode}) }}"
+               class="btn btn-success">
+                Export Excel
+            </a>
+        </div>
+        <h2 class="text-center">
+            Récapitulatif heures formateurs<br>
+            <small>{{ session.libelle }} — {{ mode == 'reel' ? 'Réel' : 'Prévisionnel' }}</small>
+        </h2>
+
+        <form method="get" class="form-inline" style="margin-bottom:20px;">
+            <input type="hidden" name="session" value="{{ session.id }}">
+
+            <label>Mode :</label>
+            <select name="mode" class="form-control" onchange="this.form.submit()">
+                <option value="reel" {{ mode == 'reel' ? 'selected' }}>Réel</option>
+                <option value="prev" {{ mode == 'prev' ? 'selected' }}>Prévisionnel</option>
+            </select>
+        </form>
+
+        <div class="table-wrap">
+            <table class="table table-bordered table-condensed table-sticky">
+
+                <thead class="sticky-header">
+                <tr>
+                    <th class="sticky-classe col-classe">Classe</th>
+                    <th class="sticky-type col-type">Type</th>
+
+                    {% for formateur in data.formateurs %}
+                        <th class="text-center col-formateur col-f{{ loop.index }}"
+                            title="{{ formateur.nom }} {{ formateur.prenom }}">
+                            {{ formateur.initiales }}
+                        </th>
+                    {% endfor %}
+
+                    <th class="col-formateur">Total</th>
+                    <th class="col-formateur">Total classe</th>
+                    <th class="col-formateur">Total FàF</th>
+                    <th class="col-formateur text-center">PF</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                {% set totalFormateurs = {} %}
+                {% set grandTotal = 0 %}
+                {% set grandTotalFaF = 0 %}
+
+                {% for categorie in ['FL','FC'] %}
+                    {% if data.data[categorie] is not empty %}
+
+                        <tr class="active">
+                            <td colspan="{{ data.formateurs|length + 6 }}">
+                                <strong>{{ categorie }}</strong>
+                            </td>
+                        </tr>
+
+                        {% for bloc in data.data[categorie] %}
+                            {% set classe = bloc.classe %}
+
+                            {# ===== COURS ===== #}
+                            {% set totalCours = 0 %}
+
+                            <tr>
+                                <td rowspan="2" class="sticky-classe"><strong>{{ classe.nom }}</strong></td>
+                                <td class="sticky-type">COURS</td>
+
+                                {% for formateur in data.formateurs %}
+                                    {% set val = bloc.COURS[formateur.id] ?? 0 %}
+                                    {% set totalCours = totalCours + val %}
+                                    {% set totalFormateurs = totalFormateurs|merge({
+                                        (formateur.id): (totalFormateurs[formateur.id] ?? 0) + val
+                                    }) %}
+                                    <td class="text-right col-f{{ loop.index }}">
+                                        {{ val > 0 ? val|number_format(0,'.',' ') : '' }}
+                                    </td>
+                                {% endfor %}
+
+                                <td class="text-right">
+                                    <strong>{{ totalCours|number_format(0,'.',' ') }}</strong>
+
+                                </td>
+                                <td class="text-right" rowspan="2">
+                                    <strong>
+                                        {{ bloc.totaux.total|number_format(0,'.',' ') }}
+                                    </strong>
+                                </td>
+                                <td class="text-right" rowspan="2">
+                                    {{ totalCours/2 }}
+                                </td>
+                                <td class="text-right" rowspan="2">
+                                    {{ classe.pfprev }}
+                                </td>
+                            </tr>
+
+                            {# ===== MISSIONS ===== #}
+                            {% set totalMission = 0 %}
+
+                            <tr class="warning">
+                                <td class="sticky-type">MISSION</td>
+
+                                {% for formateur in data.formateurs %}
+                                    {% set val = bloc.MISSION[formateur.id] ?? 0 %}
+                                    {% set totalMission = totalMission + val %}
+                                    {% set totalFormateurs = totalFormateurs|merge({
+                                        (formateur.id): (totalFormateurs[formateur.id] ?? 0) + val
+                                    }) %}
+                                    <td class="text-right">
+                                        {{ val > 0 ? val|number_format(0,'.',' ') : '' }}
+                                    </td>
+                                {% endfor %}
+
+                                <td class="text-right">
+                                    <strong>{{ totalMission|number_format(0,'.',' ') }}</strong>
+                                </td>
+
+
+                            </tr>
+
+                            {% set grandTotal = grandTotal + totalCours + totalMission %}
+                            {% set grandTotalFaF = grandTotalFaF + totalCours %}
+
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+
+
+                <tr class="success">
+                    <td colspan="2" class="sticky-classe"><strong>Total général</strong></td>
+
+                    {% for formateur in data.formateurs %}
+                        <td class="text-right">
+                            <strong>{{ (data.totalFormateurs[formateur.id] ?? 0)|number_format(0,'.',' ') }}</strong>
+                        </td>
+                    {% endfor %}
+
+                    <td class="text-right">
+
+                        <strong>{{ data.grandTotal|number_format(0,'.',' ') }}</strong>
+                    </td>
+
+                    <td class="text-right">
+                        <strong>{{ data.grandTotal|number_format(0,'.',' ') }}</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ (grandTotalFaF/2)|number_format(0,'.',' ') }}</strong>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr class="success">
+                    <td colspan="2" class="sticky-classe"><strong>Contrat</strong></td>
+                    {% set heuresContrats = 0 %}
+                    {% for formateur in data.formateurs %}
+                        {% set heuresContrats = heuresContrats + (formateur.volumeContractuel * formateur.quotite) %}
+                        <td class="text-right">
+                            <strong>{{ (formateur.volumeContractuel * formateur.quotite)|number_format(0,'.',' ') }}</strong>
+                        </td>
+                    {% endfor %}
+                    <td class="text-right">
+                        <strong>{{ heuresContrats|number_format(0,'.',' ') }}</strong>
+                    </td>
+                </tr>
+                <tr class="success">
+
+                    <td colspan="2" class="sticky-classe"><strong>Différence</strong></td>
+                    {% set difTotal = 0 %}
+                    {% for formateur in data.formateurs %}
+                        <td class="text-right">
+                            {% set dif = ((data.totalFormateurs[formateur.id] ?? 0) - (formateur.volumeContractuel * formateur.quotite)) %}
+                            {% set difTotal = difTotal + dif %}
+                            <strong class="{{ dif < 0 ? 'text-danger' : '' }}">
+                                {{ dif|number_format(0,'.',' ') }}
+                            </strong>
+                        </td>
+                    {% endfor %}
+                    <td class="text-right">
+                        <strong class="{{ difTotal < 0 ? 'text-danger' : '' }}">
+                            {{ difTotal|number_format(0,'.',' ') }}
+                        </strong>
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+    <style>
+        /* conteneur scroll */
+        .table-wrap {
+            overflow: auto;
+            max-height: 75vh;
+        }
+
+        /* important pour sticky */
+        .table-sticky {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        /* largeur colonnes */
+        .col-formateur {
+            min-width: 70px;
+            white-space: nowrap;
+        }
+
+        .col-classe {
+            min-width: 220px;
+        }
+
+        .col-type {
+            min-width: 110px;
+        }
+
+        /* HEADER sticky */
+        .table-sticky thead th {
+            position: sticky;
+            top: 0;
+            background: #d9edf7;
+            z-index: 30;
+        }
+
+        /* colonne CLASSE sticky */
+        .table-sticky .sticky-classe {
+            position: sticky;
+            left: 0;
+            background: #fff;
+            z-index: 20;
+        }
+
+        /* colonne TYPE sticky (doit correspondre à la largeur de col-classe) */
+        .table-sticky .sticky-type {
+            position: sticky;
+            left: 220px; /* = col-classe */
+            background: #fff;
+            z-index: 20;
+        }
+
+        /* coins (header + sticky cols) */
+        .table-sticky thead .sticky-classe,
+        .table-sticky thead .sticky-type {
+            z-index: 40;
+        }
+
+        /* (option) alternance par cellule header/corps à partir de la 3e colonne (formateurs) */
+        .table-sticky th:nth-child(n+3):nth-child(even),
+        .table-sticky td:nth-child(n+3):nth-child(even) {
+            background: #fafafa;
+        }
+
+        td[rowspan] {
+            vertical-align: middle !important;
+        }
+    </style>
+{% endblock %}

@@ -26,6 +26,7 @@ class ClasseCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield TextField::new('code', 'Code');
+        yield TextField::new('abrege', 'Abrégé');
         yield TextField::new('nom', 'Nom');
         yield TextField::new('type', 'Type');
 

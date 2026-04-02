@@ -19,14 +19,16 @@ class DashboardFormateurController extends AbstractController
         Session                   $session,
         DashboardFormateurService $service,
         Request                   $request,
-        EntityManagerInterface $em,
+        EntityManagerInterface    $em,
     ): Response
     {
+        $mode = $request->query->get('mode', 'reel');
         $formateurId = $request->query->getInt('formateur');
         $formateur = $em->getRepository(Formateur::class)->find($formateurId);
 
         $form = $this->createForm(FormateurSelectType::class, [
-            'formateur' => $formateur
+            'formateur' => $formateur,
+            'mode' => $mode,
         ], [
             'method' => 'GET'
         ]);
@@ -35,8 +37,10 @@ class DashboardFormateurController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $formateur = $form->get('formateur')->getData();
+            $mode = $form->get('mode')->getData();
             return $this->redirectToRoute('dashboard_formateur', [
                 'formateur' => $formateur->getId(),
+                'mode' => $mode,
                 'session' => $session->getId(),
             ]);
         }
@@ -47,6 +51,7 @@ class DashboardFormateurController extends AbstractController
             'formateur' => $formateur,
             'session' => $session,
             'data' => $data,
+            'mode' => $mode,
             'form' => $form->createView(),
 
         ]);
