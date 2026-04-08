@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+
 #[ORM\Entity(repositoryClass: TypeActiviteRepository::class)]
 #[ORM\Table(name: 'type_activite')]
 class TypeActivite
@@ -46,6 +47,10 @@ class TypeActivite
 
     #[ORM\OneToMany(targetEntity: Seance::class, mappedBy: 'typeActivite')]
     private Collection $seances;
+
+    #[ORM\ManyToOne(targetEntity: CategorieMission::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CategorieMission $categorieMission = null;
 
     public function __construct()
     {
@@ -200,6 +205,16 @@ class TypeActivite
             $this->impactFormateur ? 'Oui' : 'Non',
             $this->impactBudget ? 'Oui' : 'Non'
         );
+    }
+    public function getCategorieMission(): ?CategorieMission
+    {
+        return $this->categorieMission;
+    }
+
+    public function setCategorieMission(?CategorieMission $categorieMission): static
+    {
+        $this->categorieMission = $categorieMission;
+        return $this;
     }
     public function __toString()
     {

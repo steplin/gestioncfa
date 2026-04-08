@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AffectationMission index{% endblock %}
+
+{% block body %}
+    <div class="container">
+
+        <h2>Affectations missions</h2>
+        <div class="row mb-15">
+            <div class="col-lg-6">
+                <form method="get">
+                    <select name="session" onchange="this.form.submit()" class="form-control">
+                        <option value="">-- Toutes sessions --</option>
+                        {% for s in sessions %}
+                            <option value="{{ s.id }}" {{ s.id == sessionId ? 'selected' }}>
+                                {{ s.libelle }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            <div class="col-lg-6 text-right">
+                <a href="{{ path('app_affectation_mission_new') }}" class="btn btn-primary">Nouvelle affectation</a>
+            </div>
+        </div>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Formateur</th>
+                <th>Mission</th>
+                <th>Classe</th>
+                <th>Référentiel</th>
+                <th>Valeur</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for a in affectations %}
+                <tr>
+                    <td>{{ a.formateur }}</td>
+                    <td>{{ a.categorieMission }}</td>
+                    <td>{{ a.classe ? a.classe.nom : '-' }}</td>
+                    <td>{{ a.referentielFormation ? a.referentielFormation.libelle : '-' }}</td>
+                    <td>{{ a.valeurManuelle ?? '-' }}</td>
+                    <td>
+                        <a class="btn btn-xs btn-info" href="{{ path('app_affectation_mission_edit', {id: a.id}) }}">Modifier</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+{% endblock %}

@@ -35,5 +35,6 @@ class ClasseCrudController extends AbstractCrudController
 
         yield IntegerField::new('effectifPrevisionnel', 'Effectif prev');
         yield IntegerField::new('effectifReel', 'Effectif reel');
+        yield IntegerField::new('nbSemainesPresence', 'Nombre de semaines');
     }
 }

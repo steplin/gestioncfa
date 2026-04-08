@@ -52,6 +52,13 @@ class Classe
 
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $pfprev = null;
+
+    #[ORM\ManyToOne(targetEntity: ReferentielFormation::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?ReferentielFormation $referentielFormation = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $nbSemainesPresence = null;
     public function __construct()
     {
         $this->groupes = new ArrayCollection();
@@ -237,5 +244,25 @@ class Classe
     public function setPfprev(?int $pfprev): void
     {
         $this->pfprev = $pfprev;
+    }
+    public function getReferentielFormation(): ?ReferentielFormation
+    {
+        return $this->referentielFormation;
+    }
+
+    public function setReferentielFormation(?ReferentielFormation $referentielFormation): static
+    {
+        $this->referentielFormation = $referentielFormation;
+        return $this;
+    }
+    public function getNbSemainesPresence(): ?int
+    {
+        return $this->nbSemainesPresence;
+    }
+
+    public function setNbSemainesPresence(?int $nbSemainesPresence): static
+    {
+        $this->nbSemainesPresence = $nbSemainesPresence;
+        return $this;
     }
 }

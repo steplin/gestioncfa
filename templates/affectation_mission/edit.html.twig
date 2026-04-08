@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit AffectationMission{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h1>Edition de la mission</h1>
+
+        {{ include('affectation_mission/_form.html.twig', {'button_label': 'Modifier'}) }}
+
+        <a href="{{ path('app_affectation_mission_index') }}">Retour</a>
+
+        {{ include('affectation_mission/_delete_form.html.twig', { affectation_mission: affectation }) }}
+    </div>
+{% endblock %}

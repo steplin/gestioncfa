@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New AffectationMission{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h1>Création d'une mission</h1>
+
+        {{ include('affectation_mission/_form.html.twig') }}
+
+        <a href="{{ path('app_affectation_mission_index') }}">Retour</a>
+    </div>
+{% endblock %}

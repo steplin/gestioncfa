@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AffectationMission{% endblock %}
+
+{% block body %}
+    <h1>AffectationMission</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ affectation_mission.id }}</td>
+            </tr>
+            <tr>
+                <th>ValeurManuelle</th>
+                <td>{{ affectation_mission.valeurManuelle }}</td>
+            </tr>
+            <tr>
+                <th>Actif</th>
+                <td>{{ affectation_mission.actif ? 'Yes' : 'No' }}</td>
+            </tr>
+            <tr>
+                <th>Commentaire</th>
+                <td>{{ affectation_mission.commentaire }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_affectation_mission_index') }}">back to list</a>
+
+    <a href="{{ path('app_affectation_mission_edit', {'id': affectation_mission.id}) }}">edit</a>
+
+    {{ include('affectation_mission/_delete_form.html.twig') }}
+{% endblock %}

@@ -4,6 +4,7 @@ namespace App\Repository;
 
 
 use App\Entity\Classe;
+use App\Entity\Formateur;
 use App\Entity\Seance;
 use App\Entity\Session;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -44,5 +45,57 @@ class SeanceRepository extends ServiceEntityRepository
             ->addOrderBy('m.libelle', 'ASC');
 
         return $qb->getQuery()->getResult();
+    }
+
+    public function getTotalTempsTravailFaceAFaceByFormateurAndSession(
+        Formateur $formateur,
+        Session $session,
+        string $mode = 'reel'
+    ): float {
+        $champVolume = $mode === 'previsionnel'
+            ? 's.volumeHeuresFormateurPrevisionnel'
+            : 's.volumeHeuresFormateur';
+
+        $qb = $this->createQueryBuilder('s')
+            ->join('s.typeActivite', 'ta')
+            ->select(sprintf(
+                'COALESCE(SUM((%s) * ta.coefficientDefaut), 0)',
+                $champVolume
+            ))
+            ->andWhere('s.formateur = :formateur')
+            ->andWhere('s.session = :session')
+            ->andWhere('ta.impactFaceAFace = :impactFaceAFace')
+            ->andWhere('ta.impactTempsTravail = :impactTempsTravail')
+            ->andWhere('ta.impactClasse = :impactClasse')
+            ->setParameter('formateur', $formateur)
+            ->setParameter('session', $session)
+            ->setParameter('impactFaceAFace', true)
+            ->setParameter('impactClasse', true)
+            ->setParameter('impactTempsTravail', true);
+
+        return (float) $qb->getQuery()->getSingleScalarResult();
+    }
+    public function getTotalFaceAFaceByFormateurAndSession(
+        Formateur $formateur,
+        Session $session,
+        string $mode = 'reel'
+    ): float {
+        $champVolume = $mode === 'previsionnel'
+            ? 's.volumeHeuresFormateurPrevisionnel'
+            : 's.volumeHeuresFormateur';
+
+        $qb = $this->createQueryBuilder('s')
+            ->join('s.typeActivite', 'ta')
+            ->select(sprintf(
+                'COALESCE(SUM(%s), 0)',
+                $champVolume
+            ))
+            ->andWhere('s.formateur = :formateur')
+            ->andWhere('s.session = :session')
+            ->andWhere('ta.impactFaceAFace = true')
+            ->setParameter('formateur', $formateur)
+            ->setParameter('session', $session);
+
+        return (float) $qb->getQuery()->getSingleScalarResult();
     }
 }

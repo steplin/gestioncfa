@@ -190,5 +190,30 @@ class Seance
         $this->volumeHeuresGroupePrevisionnel = $volumeHeuresGroupePrevisionnel;
         return $this;
     }
+    public function getVolumeFaceAFace(string $mode = 'reel'): float
+    {
+        if (!$this->typeActivite?->isImpactFaceAFace()) {
+            return 0.0;
+        }
+
+        $volume = $mode === 'previsionnel'
+            ? (float) ($this->volumeHeuresFormateurPrevisionnel ?? 0)
+            : (float) ($this->volumeHeuresFormateur ?? 0);
+
+        return $volume * (float) ($this->typeActivite?->getCoefficientDefaut() ?? 1);
+    }
+
+    public function getVolumeTempsTravail(string $mode = 'reel'): float
+    {
+        if (!$this->typeActivite?->isImpactTempsTravail()) {
+            return 0.0;
+        }
+
+        $volume = $mode === 'previsionnel'
+            ? (float) ($this->volumeHeuresFormateurPrevisionnel ?? 0)
+            : (float) ($this->volumeHeuresFormateur ?? 0);
+
+        return $volume * (float) ($this->typeActivite?->getCoefficientDefaut() ?? 1);
+    }
 
 }

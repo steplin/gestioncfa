@@ -3,7 +3,7 @@
 {% block body %}
     <div class="container">
     <div class="text-right">
-        <a href="{{ path('export_formateur_excel', {'formateur': formateur.id, 'session': session.id, 'mode':mode}) }}"
+        <a href="{{ path('export_formateur_excel', {'formateur': formateur.id|default(0), 'session': session.id, 'mode':mode}) }}"
            class="btn btn-info">Export excel</a>
         <a href="{{ path('export_formateurs_session', {'id': session.id, 'mode':mode}) }}"
            class="btn btn-primary">Export Fiches formateurs</a>

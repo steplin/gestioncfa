@@ -6,6 +6,7 @@ use App\Entity\Formateur;
 use App\Entity\Session;
 use App\Form\FormateurSelectType;
 use App\Service\DashboardFormateurService;
+use App\Service\MissionCalculatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,10 +19,12 @@ class DashboardFormateurController extends AbstractController
     public function index(
         Session                   $session,
         DashboardFormateurService $service,
+        MissionCalculatorService  $calculator,
         Request                   $request,
         EntityManagerInterface    $em,
     ): Response
     {
+
         $mode = $request->query->get('mode', 'reel');
         $formateurId = $request->query->getInt('formateur');
         $formateur = $em->getRepository(Formateur::class)->find($formateurId);
@@ -46,7 +49,7 @@ class DashboardFormateurController extends AbstractController
         }
 
         $data = $service->build($formateur, $session);
-
+        dd($calculator->calculate($formateur,$session));
         return $this->render('dashboard/formateur.html.twig', [
             'formateur' => $formateur,
             'session' => $session,
