@@ -54,7 +54,7 @@ class Classe
     private ?int $pfprev = null;
 
     #[ORM\ManyToOne(targetEntity: ReferentielFormation::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?ReferentielFormation $referentielFormation = null;
 
     #[ORM\Column(nullable: true)]
