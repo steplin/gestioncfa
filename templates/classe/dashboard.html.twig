@@ -2,7 +2,29 @@
 
 {% block body %}
     <div class="container">
-
+    <a
+        href="{{ path('export_classe_excel', {
+            classe: classe.id,
+            session: session.id,
+            mode: mode,
+            view: view,
+            prioritaire: prioritaire ? 1 : 0
+        }) }}"
+        class="btn btn-success"
+    >
+        Export Excel
+    </a>
+    <a
+        href="{{ path('export_classes_session_excel', {
+            id: session.id,
+            mode: mode,
+            view: view,
+            prioritaire: prioritaire ? 1 : 0
+        }) }}"
+        class="btn btn-outline-success"
+    >
+        Export toutes les classes
+    </a>
     <div class="panel panel-default no-print" style="margin-bottom:20px;">
         <div class="panel-body">
 

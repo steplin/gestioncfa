@@ -205,6 +205,10 @@ class Classe
     {
         return $this->abrege;
     }
+    public function getName()
+    {
+        return preg_replace('/\s*-\s*\d{2}-\d{2}$/', '', $this->getNom());
+    }
     public function updatePf(iterable $seances): array
     {
         $totaux = [

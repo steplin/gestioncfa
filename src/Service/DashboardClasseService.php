@@ -157,4 +157,192 @@ class DashboardClasseService
         return $data;
 
     }
+
+    public function buildExportData(
+        Classe  $classe,
+        Session $session,
+        string  $mode = 'both',
+        string  $view = 'formateur',
+        bool    $prioritaireOnly = false
+    ): array
+    {
+        $data = $this->build($classe, $session, $mode, $view, $prioritaireOnly);
+
+        return [
+            'meta' => [
+                'classe' => $classe,
+                'session' => $session,
+                'mode' => $data['mode'],
+                'view' => $data['view'],
+                'prioritaire' => $prioritaireOnly,
+            ],
+            'lignes' => $this->buildExportRows($data, $data['view'], $prioritaireOnly),
+            'totaux' => $data['totaux'],
+        ];
+    }
+
+    private function buildExportRows(array $data, string $view, bool $prioritaireOnly): array
+    {
+        if ($view === 'matiere') {
+            return $this->buildExportRowsMatiere($data, $prioritaireOnly);
+        }
+
+        return $this->buildExportRowsFormateur($data);
+    }
+
+    private function buildExportRowsFormateur(array $data): array
+    {
+        $rows = [];
+
+        foreach ($data['groupes'] as $gBlock) {
+            $groupe = $gBlock['groupe'];
+
+            // Ligne de section groupe.
+            // Elle sera affichée en ligne fusionnée dans Excel.
+            $rows[] = [
+                'type' => 'groupe',
+                'groupe' => $groupe->getNom(),
+                'formateur' => '',
+                'matiere' => '',
+                'reel' => null,
+                'prev' => null,
+            ];
+
+            foreach ($gBlock['formateurs'] as $fBlock) {
+                $formateur = $fBlock['formateur'];
+
+                // Ligne de section formateur.
+                // Elle sera affichée en ligne fusionnée dans Excel.
+                $rows[] = [
+                    'type' => 'formateur',
+                    'groupe' => $groupe->getNom(),
+                    'formateur' => $formateur->getNomComplet(),
+                    'matiere' => '',
+                    'reel' => null,
+                    'prev' => null,
+                ];
+
+                foreach ($fBlock['lignes'] as $ligne) {
+                    $matiere = $ligne['matiere'];
+
+                    $rows[] = [
+                        'type' => 'ligne',
+                        'groupe' => $groupe->getNom(),
+                        'formateur' => '',
+                        'matiere' => $matiere->getLibelle(),
+                        'reel' => (float) ($ligne['reel'] ?? 0),
+                        'prev' => (float) ($ligne['prev'] ?? 0),
+                    ];
+                }
+
+                // Le total reste disponible dans les données,
+                // mais dans Excel il sera remplacé par une formule.
+                $rows[] = [
+                    'type' => 'sous_total_formateur',
+                    'groupe' => $groupe->getNom(),
+                    'formateur' => 'Sous-total ' . $formateur->getNomComplet(),
+                    'matiere' => '',
+                    'reel' => (float) ($fBlock['totaux']['reel'] ?? 0),
+                    'prev' => (float) ($fBlock['totaux']['prev'] ?? 0),
+                ];
+            }
+
+            // Le total reste disponible dans les données,
+            // mais dans Excel il sera remplacé par une formule.
+            $rows[] = [
+                'type' => 'total_groupe',
+                'groupe' => $groupe->getNom(),
+                'formateur' => 'Total groupe',
+                'matiere' => $groupe->getNom(),
+                'reel' => (float) ($gBlock['totaux']['reel'] ?? 0),
+                'prev' => (float) ($gBlock['totaux']['prev'] ?? 0),
+            ];
+
+            $rows[] = [
+                'type' => 'empty',
+                'groupe' => '',
+                'formateur' => '',
+                'matiere' => '',
+                'reel' => null,
+                'prev' => null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function buildExportRowsMatiere(array $data, bool $prioritaireOnly): array
+    {
+        $rows = [];
+
+        if ($prioritaireOnly) {
+            $rows[] = [
+                'type' => 'groupe',
+                'groupe' => 'Prioritaire',
+                'matiere' => '',
+                'reel' => null,
+                'prev' => null,
+            ];
+
+            foreach ($data['matieres'] as $mBlock) {
+                $matiere = $mBlock['matiere'];
+
+                $rows[] = [
+                    'type' => 'ligne',
+                    'groupe' => 'Prioritaire',
+                    'matiere' => $matiere->getLibelle(),
+                    'reel' => (float) ($mBlock['reel'] ?? 0),
+                    'prev' => (float) ($mBlock['prev'] ?? 0),
+                ];
+            }
+
+            return $rows;
+        }
+
+        foreach ($data['groupes'] as $gBlock) {
+            $groupe = $gBlock['groupe'];
+
+            // Ligne de section groupe.
+            // Elle sera affichée en ligne fusionnée dans Excel.
+            $rows[] = [
+                'type' => 'groupe',
+                'groupe' => $groupe->getNom(),
+                'matiere' => '',
+                'reel' => null,
+                'prev' => null,
+            ];
+
+            foreach ($gBlock['matieres'] as $mBlock) {
+                $matiere = $mBlock['matiere'];
+
+                $rows[] = [
+                    'type' => 'ligne',
+                    'groupe' => $groupe->getNom(),
+                    'matiere' => $matiere->getLibelle(),
+                    'reel' => (float) ($mBlock['reel'] ?? 0),
+                    'prev' => (float) ($mBlock['prev'] ?? 0),
+                ];
+            }
+
+            // Le total reste disponible dans les données,
+            // mais dans Excel il sera remplacé par une formule.
+            $rows[] = [
+                'type' => 'total_groupe',
+                'groupe' => $groupe->getNom(),
+                'matiere' => 'Total groupe ' . $groupe->getNom(),
+                'reel' => (float) ($gBlock['totaux']['reel'] ?? 0),
+                'prev' => (float) ($gBlock['totaux']['prev'] ?? 0),
+            ];
+
+            $rows[] = [
+                'type' => 'empty',
+                'groupe' => '',
+                'matiere' => '',
+                'reel' => null,
+                'prev' => null,
+            ];
+        }
+
+        return $rows;
+    }
 }
