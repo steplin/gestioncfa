@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\AffectationMission;
 use App\Entity\Classe;
 use App\Entity\Seance;
 use App\Entity\Session;
@@ -34,14 +35,13 @@ class DashboardClasseService
         ];
 
         foreach ($seances as $seance) {
-
             $g = $seance->getGroupe();
             $f = $seance->getFormateur();
             $m = $seance->getMatiere();
 
-            $gid = (int)$g->getId();
-            $fid = (int)$f->getId();
-            $mid = (int)$m->getId();
+            $gid = (int) $g->getId();
+            $fid = (int) $f->getId();
+            $mid = (int) $m->getId();
 
             if (!isset($data['groupes'][$gid])) {
                 $data['groupes'][$gid] = [
@@ -52,14 +52,10 @@ class DashboardClasseService
                 ];
             }
 
-            $real = (float)($seance->getVolumeHeuresGroupe() ?? 0);
-            $prev = (float)($seance->getVolumeHeuresGroupePrevisionnel() ?? 0);
+            $real = (float) ($seance->getVolumeHeuresGroupe() ?? 0);
+            $prev = (float) ($seance->getVolumeHeuresGroupePrevisionnel() ?? 0);
 
-            // ===============================
-            // VIEW MATIERE (sans formateur)
-            // ===============================
-            if ($view === 'matiere' and $prioritaireOnly === false) {
-
+            if ($view === 'matiere' && $prioritaireOnly === false) {
                 if (!isset($data['groupes'][$gid]['matieres'][$mid])) {
                     $data['groupes'][$gid]['matieres'][$mid] = [
                         'matiere' => $m,
@@ -70,11 +66,7 @@ class DashboardClasseService
 
                 $data['groupes'][$gid]['matieres'][$mid]['reel'] += $real;
                 $data['groupes'][$gid]['matieres'][$mid]['prev'] += $prev;
-            }
-            // ===============================
-            // VIEW MATIERE (sans formateur) + prioritaire
-            // ======
-            elseif ($view === 'matiere' and $prioritaireOnly === true) {
+            } elseif ($view === 'matiere' && $prioritaireOnly === true) {
                 if (!isset($data['matieres'][$mid])) {
                     $data['matieres'][$mid] = [
                         'matiere' => $m,
@@ -82,18 +74,14 @@ class DashboardClasseService
                         'prev' => 0.0,
                     ];
                 }
+
                 $data['matieres'][$mid]['reel'] += $real;
                 $data['matieres'][$mid]['prev'] += $prev;
                 $data['totaux']['reel'] += $real;
                 $data['totaux']['prev'] += $prev;
+
                 continue;
-            }
-
-            // ===============================
-            // VIEW FORMATEUR (ton système actuel)
-            // ===============================
-            else {
-
+            } else {
                 if (!isset($data['groupes'][$gid]['formateurs'][$fid])) {
                     $data['groupes'][$gid]['formateurs'][$fid] = [
                         'formateur' => $f,
@@ -118,30 +106,25 @@ class DashboardClasseService
                 $data['groupes'][$gid]['formateurs'][$fid]['totaux']['prev'] += $prev;
             }
 
-            // Totaux groupe
             $data['groupes'][$gid]['totaux']['reel'] += $real;
             $data['groupes'][$gid]['totaux']['prev'] += $prev;
 
-            // Total général
             $data['totaux']['reel'] += $real;
             $data['totaux']['prev'] += $prev;
         }
 
-        // Tri
-        // Tri des groupes par nom
-        uasort($data['groupes'], fn($a, $b) => strcasecmp($a['groupe']->getNom(), $b['groupe']->getNom()));
-        if ($view === 'matiere' and $prioritaireOnly === true) {
-            uasort($data['matieres'], fn($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
-        }
-        foreach ($data['groupes'] as &$gBlock) {
+        uasort($data['groupes'], fn ($a, $b) => strcasecmp($a['groupe']->getNom(), $b['groupe']->getNom()));
 
+        if ($view === 'matiere' && $prioritaireOnly === true) {
+            uasort($data['matieres'], fn ($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
+        }
+
+        foreach ($data['groupes'] as &$gBlock) {
             if ($view === 'matiere') {
-                // Tri matières par libellé
-                uasort($gBlock['matieres'], fn($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
+                uasort($gBlock['matieres'], fn ($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
                 continue;
             }
 
-            // Tri formateurs par nom puis prénom
             uasort($gBlock['formateurs'], function ($a, $b) {
                 $fa = $a['formateur'];
                 $fb = $b['formateur'];
@@ -149,23 +132,21 @@ class DashboardClasseService
                 return $c !== 0 ? $c : strcasecmp($fa->getPrenom(), $fb->getPrenom());
             });
 
-            // Tri lignes (matières) par libellé
             foreach ($gBlock['formateurs'] as &$fBlock) {
-                uasort($fBlock['lignes'], fn($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
+                uasort($fBlock['lignes'], fn ($a, $b) => strcasecmp($a['matiere']->getLibelle(), $b['matiere']->getLibelle()));
             }
         }
-        return $data;
 
+        return $data;
     }
 
     public function buildExportData(
-        Classe  $classe,
+        Classe $classe,
         Session $session,
-        string  $mode = 'both',
-        string  $view = 'formateur',
-        bool    $prioritaireOnly = false
-    ): array
-    {
+        string $mode = 'both',
+        string $view = 'formateur',
+        bool $prioritaireOnly = false
+    ): array {
         $data = $this->build($classe, $session, $mode, $view, $prioritaireOnly);
 
         return [
@@ -177,6 +158,7 @@ class DashboardClasseService
                 'prioritaire' => $prioritaireOnly,
             ],
             'lignes' => $this->buildExportRows($data, $data['view'], $prioritaireOnly),
+            'missions' => $this->buildExportMissions($classe, $session, $data['mode']),
             'totaux' => $data['totaux'],
         ];
     }
@@ -197,8 +179,6 @@ class DashboardClasseService
         foreach ($data['groupes'] as $gBlock) {
             $groupe = $gBlock['groupe'];
 
-            // Ligne de section groupe.
-            // Elle sera affichée en ligne fusionnée dans Excel.
             $rows[] = [
                 'type' => 'groupe',
                 'groupe' => $groupe->getNom(),
@@ -211,8 +191,6 @@ class DashboardClasseService
             foreach ($gBlock['formateurs'] as $fBlock) {
                 $formateur = $fBlock['formateur'];
 
-                // Ligne de section formateur.
-                // Elle sera affichée en ligne fusionnée dans Excel.
                 $rows[] = [
                     'type' => 'formateur',
                     'groupe' => $groupe->getNom(),
@@ -235,8 +213,6 @@ class DashboardClasseService
                     ];
                 }
 
-                // Le total reste disponible dans les données,
-                // mais dans Excel il sera remplacé par une formule.
                 $rows[] = [
                     'type' => 'sous_total_formateur',
                     'groupe' => $groupe->getNom(),
@@ -247,8 +223,6 @@ class DashboardClasseService
                 ];
             }
 
-            // Le total reste disponible dans les données,
-            // mais dans Excel il sera remplacé par une formule.
             $rows[] = [
                 'type' => 'total_groupe',
                 'groupe' => $groupe->getNom(),
@@ -302,8 +276,6 @@ class DashboardClasseService
         foreach ($data['groupes'] as $gBlock) {
             $groupe = $gBlock['groupe'];
 
-            // Ligne de section groupe.
-            // Elle sera affichée en ligne fusionnée dans Excel.
             $rows[] = [
                 'type' => 'groupe',
                 'groupe' => $groupe->getNom(),
@@ -324,8 +296,6 @@ class DashboardClasseService
                 ];
             }
 
-            // Le total reste disponible dans les données,
-            // mais dans Excel il sera remplacé par une formule.
             $rows[] = [
                 'type' => 'total_groupe',
                 'groupe' => $groupe->getNom(),
@@ -340,6 +310,59 @@ class DashboardClasseService
                 'matiere' => '',
                 'reel' => null,
                 'prev' => null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function buildExportMissions(Classe $classe, Session $session, string $mode): array
+    {
+        $seances = $this->em
+            ->getRepository(Seance::class)
+            ->createQueryBuilder('s')
+            ->join('s.typeActivite', 'ta')
+            ->addSelect('ta')
+            ->join('s.formateur', 'f')
+            ->addSelect('f')
+            ->join('s.matiere', 'm')
+            ->addSelect('m')
+            ->andWhere('s.session = :session')
+            ->andWhere('s.classe = :classe')
+            ->andWhere('ta.code <> :cours')
+            ->setParameter('session', $session)
+            ->setParameter('classe', $classe)
+            ->setParameter('cours', 'COURS')
+            ->orderBy('ta.code', 'ASC')
+            ->addOrderBy('f.nom', 'ASC')
+            ->addOrderBy('f.prenom', 'ASC')
+            ->addOrderBy('m.libelle', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $rows = [];
+
+        foreach ($seances as $seance) {
+            $typeActivite = $seance->getTypeActivite();
+            $matiere = $seance->getMatiere();
+
+            $missionLabel = trim(sprintf(
+                '%s - %s',
+                $typeActivite?->getCode() ?? '',
+                $matiere?->getLibelle() ?? ''
+            ));
+
+            $reel = round((float) ($seance->getVolumeHeuresFormateur() ?? 0), 2);
+            $prev = round((float) ($seance->getVolumeHeuresFormateurPrevisionnel() ?? 0), 2);
+
+            $rows[] = [
+                'type' => 'mission',
+                'formateur' => $seance->getFormateur()?->getNomComplet() ?? '',
+                'mission' => $missionLabel,
+                'code_mission' => $typeActivite?->getCode() ?? '',
+                'commentaire' => '',
+                'reel' => $reel,
+                'prev' => $prev,
             ];
         }
 

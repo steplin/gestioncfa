@@ -15,11 +15,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClasseExcelExportService
 {
-    private const COLOR_HEADER = 'FFF2F2F2';     // Gris clair : en-têtes
-    private const COLOR_GROUP = 'FFFFE699';      // Jaune clair : groupe / total groupe
-    private const COLOR_FORMATEUR = 'FFDDEBF7';  // Bleu clair : formateur
-    private const COLOR_SUBTOTAL = 'FFFFFFFF';   // Blanc : sous-total formateur
-    private const COLOR_TOTAL = 'FFB7E1A1';      // Vert clair : total général
+    private const COLOR_HEADER = 'FFF2F2F2';
+    private const COLOR_GROUP = 'FFFFE699';
+    private const COLOR_FORMATEUR = 'FFDDEBF7';
+    private const COLOR_SUBTOTAL = 'FFFFFFFF';
+    private const COLOR_TOTAL = 'FFB7E1A1';
 
     public function export(
         Classe $classe,
@@ -88,9 +88,6 @@ class ClasseExcelExportService
 
         $row = 1;
 
-        // =========================
-        // TITRE
-        // =========================
         $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
         $sheet->setCellValue("A{$row}", $classe->getNom());
 
@@ -98,16 +95,15 @@ class ClasseExcelExportService
             ->getFont()
             ->setBold(true)
             ->setSize(14);
+
         $sheet->getStyle("A{$row}:{$lastColumn}{$row}")
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
         $sheet->getRowDimension($row)->setRowHeight(26);
 
         $row += 2;
 
-        // =========================
-        // META
-        // =========================
         $metaStartRow = $row;
 
         $sheet->setCellValue("A{$row}", 'Vue');
@@ -120,6 +116,9 @@ class ClasseExcelExportService
 
         $sheet->setCellValue("A{$row}", 'Mode');
         $sheet->setCellValue("B{$row}", $this->formatMode($mode));
+        $row++;
+        $sheet->setCellValue("A{$row}", 'Type');
+        $sheet->setCellValue("B{$row}", $classe->getType());
         $row++;
 
         if ($prioritaire) {
@@ -134,9 +133,6 @@ class ClasseExcelExportService
 
         $row++;
 
-        // =========================
-        // EN-TÊTES
-        // =========================
         $headerStart = $row;
 
         if ($view === 'formateur') {
@@ -153,9 +149,6 @@ class ClasseExcelExportService
         $currentGroupSubtotalRows = [];
         $currentFormateurStartRow = null;
 
-        // =========================
-        // LIGNES
-        // =========================
         foreach ($exportData['lignes'] as $ligne) {
             $type = $ligne['type'] ?? 'ligne';
 
@@ -164,7 +157,6 @@ class ClasseExcelExportService
                 continue;
             }
 
-            // Nouvelle section groupe
             if ($type === 'groupe') {
                 $currentGroupStartRow = null;
                 $currentGroupSubtotalRows = [];
@@ -185,7 +177,6 @@ class ClasseExcelExportService
                 continue;
             }
 
-            // Nouvelle section formateur
             if ($type === 'formateur') {
                 $currentFormateurStartRow = null;
 
@@ -199,7 +190,6 @@ class ClasseExcelExportService
                 continue;
             }
 
-            // Ligne détail
             if ($type === 'ligne') {
                 if ($currentGroupStartRow === null) {
                     $currentGroupStartRow = $row;
@@ -216,6 +206,7 @@ class ClasseExcelExportService
                     $this->writeRowMatiere($sheet, $row, $ligne);
                     $range = "A{$row}:C{$row}";
                 }
+
                 $sheet->getRowDimension($headerStart)->setRowHeight(28);
                 $this->styleDataRow($sheet, $range, $type);
                 $sheet->getRowDimension($row)->setRowHeight(18);
@@ -224,7 +215,6 @@ class ClasseExcelExportService
                 continue;
             }
 
-            // Sous-total formateur = formule sur les lignes détail du formateur
             if ($type === 'sous_total_formateur') {
                 if ($view === 'formateur') {
                     $this->writeSubtotalFormateurFormula(
@@ -249,7 +239,6 @@ class ClasseExcelExportService
                 continue;
             }
 
-            // Total groupe = formule
             if ($type === 'total_groupe') {
                 if ($view === 'formateur') {
                     $this->writeTotalGroupeFormateurFormula(
@@ -286,9 +275,6 @@ class ClasseExcelExportService
             }
         }
 
-        // =========================
-        // TOTAL GÉNÉRAL = formule
-        // =========================
         $totalRow = $row;
 
         if ($view === 'formateur') {
@@ -345,9 +331,6 @@ class ClasseExcelExportService
             $this->applyBorders($sheet, "A{$headerStart}:C{$totalRow}");
         }
 
-        // =========================
-        // FORMAT NUMÉRIQUE
-        // =========================
         if ($view === 'formateur') {
             $sheet->getStyle("C{$dataStart}:D{$totalRow}")
                 ->getNumberFormat()
@@ -358,9 +341,17 @@ class ClasseExcelExportService
                 ->setFormatCode('#,##0.00;-#,##0.00;;@');
         }
 
-        // =========================
-        // LARGEURS / GEL VOLET
-        // =========================
+        $row = $totalRow + 2;
+
+        if (!empty($exportData['missions'])) {
+            $row = $this->writeMissionsBlock(
+                $sheet,
+                $row,
+                $exportData['missions'],
+                $view
+            );
+        }
+
         foreach (range('A', $lastColumn) as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
@@ -373,20 +364,13 @@ class ClasseExcelExportService
         array $items,
         string $mode = 'both'
     ): StreamedResponse {
-        // $items = [
-        //     ['classe' => Classe, 'data' => array],
-        //     ...
-        // ];
-
         $spreadsheet = new Spreadsheet();
 
-        // Supprime la feuille vide créée par défaut
         $spreadsheet->removeSheetByIndex(0);
 
         $usedTitles = [];
 
         foreach ($items as $idx => $item) {
-            /** @var Classe $classe */
             $classe = $item['classe'];
             $data = $item['data'];
 
@@ -433,6 +417,7 @@ class ClasseExcelExportService
 
         return $response;
     }
+
     private function buildSheetTitle(Classe $classe, array $usedTitles): string
     {
         $title = $classe->getNom()
@@ -457,7 +442,6 @@ class ClasseExcelExportService
 
     private function sanitizeSheetTitle(string $title): string
     {
-        // Excel interdit : \ / ? * [ ] :
         $title = preg_replace('/[\\\\\\/\\?\\*\\[\\]\\:]/', ' ', $title);
         $title = trim((string) $title);
 
@@ -601,6 +585,128 @@ class ClasseExcelExportService
         }
     }
 
+    private function writeMissionsBlock(
+        Worksheet $sheet,
+        int $row,
+        array $missions,
+        string $view
+    ): int {
+        $lastColumn = $view === 'formateur' ? 'D' : 'C';
+
+        $titleRow = $row;
+
+        $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
+        $sheet->setCellValue("A{$row}", 'MISSIONS - Temps de travail formateur');
+        $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->getFont()->setBold(true);
+        $this->fill($sheet, "A{$row}:{$lastColumn}{$row}", self::COLOR_FORMATEUR);
+        $sheet->getRowDimension($row)->setRowHeight(20);
+        $row++;
+
+        if ($view === 'formateur') {
+            $sheet->setCellValue("A{$row}", 'Formateur');
+            $sheet->setCellValue("B{$row}", 'Mission');
+            $sheet->setCellValue("C{$row}", 'Réel');
+            $sheet->setCellValue("D{$row}", 'Prévisionnel');
+
+            $this->styleHeader($sheet, "A{$row}:D{$row}");
+            $sheet->getRowDimension($row)->setRowHeight(28);
+            $row++;
+
+            $firstMissionRow = $row;
+
+            foreach ($missions as $mission) {
+                $sheet->setCellValue("A{$row}", $mission['formateur'] ?? '');
+                $sheet->setCellValue("B{$row}", $mission['mission'] ?? '');
+
+                if (($mission['reel'] ?? null) !== null) {
+                    $sheet->setCellValue("C{$row}", (float) $mission['reel']);
+                }
+
+                if (($mission['prev'] ?? null) !== null) {
+                    $sheet->setCellValue("D{$row}", (float) $mission['prev']);
+                }
+
+                $sheet->getRowDimension($row)->setRowHeight(18);
+                $row++;
+            }
+
+            $lastMissionRow = $row - 1;
+
+            $sheet->setCellValue("A{$row}", 'TOTAL MISSIONS');
+
+            if ($lastMissionRow >= $firstMissionRow) {
+                $sheet->setCellValue("C{$row}", "=SUM(C{$firstMissionRow}:C{$lastMissionRow})");
+                $sheet->setCellValue("D{$row}", "=SUM(D{$firstMissionRow}:D{$lastMissionRow})");
+            } else {
+                $sheet->setCellValue("C{$row}", 0);
+                $sheet->setCellValue("D{$row}", 0);
+            }
+
+            $this->fill($sheet, "A{$row}:D{$row}", self::COLOR_TOTAL);
+            $sheet->getStyle("A{$row}:D{$row}")->getFont()->setBold(true);
+            $sheet->getRowDimension($row)->setRowHeight(18);
+
+            $sheet->getStyle("C{$firstMissionRow}:D{$row}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00;-#,##0.00;;@');
+
+            $this->applyBorders($sheet, "A{$titleRow}:D{$row}");
+
+            return $row + 1;
+        }
+
+        $sheet->setCellValue("A{$row}", 'Mission / Formateur');
+        $sheet->setCellValue("B{$row}", 'Réel');
+        $sheet->setCellValue("C{$row}", 'Prévisionnel');
+
+        $this->styleHeader($sheet, "A{$row}:C{$row}");
+        $sheet->getRowDimension($row)->setRowHeight(28);
+        $row++;
+
+        $firstMissionRow = $row;
+
+        foreach ($missions as $mission) {
+            $label = trim(($mission['mission'] ?? '') . ' - ' . ($mission['formateur'] ?? ''));
+
+            $sheet->setCellValue("A{$row}", $label);
+
+            if (($mission['reel'] ?? null) !== null) {
+                $sheet->setCellValue("B{$row}", (float) $mission['reel']);
+            }
+
+            if (($mission['prev'] ?? null) !== null) {
+                $sheet->setCellValue("C{$row}", (float) $mission['prev']);
+            }
+
+            $sheet->getRowDimension($row)->setRowHeight(18);
+            $row++;
+        }
+
+        $lastMissionRow = $row - 1;
+
+        $sheet->setCellValue("A{$row}", 'TOTAL MISSIONS');
+
+        if ($lastMissionRow >= $firstMissionRow) {
+            $sheet->setCellValue("B{$row}", "=SUM(B{$firstMissionRow}:B{$lastMissionRow})");
+            $sheet->setCellValue("C{$row}", "=SUM(C{$firstMissionRow}:C{$lastMissionRow})");
+        } else {
+            $sheet->setCellValue("B{$row}", 0);
+            $sheet->setCellValue("C{$row}", 0);
+        }
+
+        $this->fill($sheet, "A{$row}:C{$row}", self::COLOR_TOTAL);
+        $sheet->getStyle("A{$row}:C{$row}")->getFont()->setBold(true);
+        $sheet->getRowDimension($row)->setRowHeight(18);
+
+        $sheet->getStyle("B{$firstMissionRow}:C{$row}")
+            ->getNumberFormat()
+            ->setFormatCode('#,##0.00;-#,##0.00;;@');
+
+        $this->applyBorders($sheet, "A{$titleRow}:C{$row}");
+
+        return $row + 1;
+    }
+
     private function getDetailRows(array $lignes, int $dataStart): array
     {
         $rows = [];
@@ -675,8 +781,6 @@ class ClasseExcelExportService
             $sheet->getStyle($range)
                 ->getFont()
                 ->setBold(true);
-
-            return;
         }
     }
 
