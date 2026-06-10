@@ -30,17 +30,24 @@ final class SeanceImporter
      */
     public function import(ProjectionImportContext $context, array $rows): void
     {
-        $typeCours = $this->resolveCoursType($context);
-        if (!$typeCours instanceof TypeActivite) {
-            return;
-        }
-
         foreach ($rows as $row) {
             if (!$row instanceof ProjectionSeanceRow || !$row->hasHours()) {
                 continue;
             }
 
-            $classe = $this->classeResolver->resolve($context, $row->classe);
+            $typeActivite = $this->resolveTypeActivite($context, $row->typeActiviteCode);
+            if (!$typeActivite instanceof TypeActivite) {
+                continue;
+            }
+
+            $typeClasse = $this->classeResolver->resolveTypeFromGroupeName($row->groupe);
+
+            $classe = $this->classeResolver->resolve(
+                $context,
+                $row->classe,
+                $typeClasse
+            );
+
             if ($classe === null) {
                 continue;
             }
@@ -59,7 +66,7 @@ final class SeanceImporter
             $seance->setGroupe($groupe);
             $seance->setFormateur($formateur);
             $seance->setMatiere($matiere);
-            $seance->setTypeActivite($typeCours);
+            $seance->setTypeActivite($typeActivite);
             $seance->setVolumeHeuresFormateur((string) $row->reel);
             $seance->setVolumeHeuresFormateurPrevisionnel((string) $row->previsionnel);
             $seance->setVolumeHeuresGroupe((string) $row->reel);
@@ -67,28 +74,102 @@ final class SeanceImporter
 
             $context->getReport()->incrementSeancesCreees();
 
+            if ($row->isMission()) {
+                $context->getReport()->addMissionCopiee(sprintf(
+                    '%s / %s / %s / %s',
+                    $row->formateur,
+                    $row->classe,
+                    $row->groupe,
+                    $row->matiere
+                ));
+            }
+
             if (!$context->isDryRun()) {
                 $this->entityManager->persist($seance);
             }
         }
     }
 
-    private function resolveCoursType(ProjectionImportContext $context): ?TypeActivite
-    {
-        $cached = $context->getTypeActivite('COURS');
+    private function resolveTypeActivite(
+        ProjectionImportContext $context,
+        string $code
+    ): ?TypeActivite {
+        $code = trim($code);
+
+        if ($code === '') {
+            $context->getReport()->addError('TypeActivite vide. Ligne ignorée.');
+            return null;
+        }
+
+        $cacheKey = $this->normalizeForCompare($code);
+
+        $cached = $context->getTypeActivite($cacheKey);
         if ($cached instanceof TypeActivite) {
             return $cached;
         }
 
-        $typeCours = $this->typeActiviteRepository->findOneBy(['code' => 'COURS']);
+        /*
+         * 1. Recherche exacte
+         * Exemple : ACCOMPAGNEMENT, ACTION, REFERENT
+         */
+        $typeActivite = $this->typeActiviteRepository->findOneBy([
+            'code' => $code,
+        ]);
 
-        if (!$typeCours instanceof TypeActivite) {
-            $context->getReport()->addError('TypeActivite COURS introuvable. Import impossible.');
-            return null;
+        if ($typeActivite instanceof TypeActivite) {
+            $context->setTypeActivite($cacheKey, $typeActivite);
+            return $typeActivite;
         }
 
-        $context->setTypeActivite('COURS', $typeCours);
+        /*
+         * 2. Recherche normalisée
+         * Permet de faire correspondre :
+         * ENTRETIEN_HAND
+         * ENTRETIEN HAND
+         * Entretien hand
+         */
+        foreach ($this->typeActiviteRepository->findAll() as $candidate) {
+            if (!$candidate instanceof TypeActivite) {
+                continue;
+            }
 
-        return $typeCours;
+            if (
+                $this->normalizeForCompare((string) $candidate->getCode()) === $cacheKey
+                || $this->normalizeForCompare((string) $candidate->getLibelle()) === $cacheKey
+            ) {
+                $context->setTypeActivite($cacheKey, $candidate);
+                return $candidate;
+            }
+        }
+
+        $context->getReport()->addError(sprintf(
+            'TypeActivite "%s" introuvable. Ligne ignorée.',
+            $code
+        ));
+
+        return null;
+    }
+    private function normalizeForCompare(string $value): string
+    {
+        $value = $this->normalize($value);
+        $value = preg_replace('/[^A-Z0-9]+/', ' ', $value);
+        $value = preg_replace('/\s+/', ' ', (string) $value);
+
+        return trim((string) $value);
+    }
+
+    private function normalize(string $value): string
+    {
+        $value = trim($value);
+        $value = str_replace("\xc2\xa0", ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value);
+        $value = mb_strtoupper((string) $value);
+
+        $transliterator = \Transliterator::create('NFD; [:Nonspacing Mark:] Remove; NFC');
+        if ($transliterator !== null) {
+            $value = $transliterator->transliterate($value);
+        }
+
+        return $value;
     }
 }

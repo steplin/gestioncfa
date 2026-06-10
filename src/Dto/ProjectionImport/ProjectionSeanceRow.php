@@ -2,15 +2,16 @@
 
 namespace App\Dto\ProjectionImport;
 
-final class ProjectionSeanceRow
+final readonly class ProjectionSeanceRow
 {
     public function __construct(
-        public readonly string $classe,
-        public readonly string $groupe,
-        public readonly string $formateur,
-        public readonly string $matiere,
-        public readonly float $reel,
-        public readonly float $previsionnel,
+        public string $classe,
+        public string $groupe,
+        public string $formateur,
+        public string $matiere,
+        public float  $reel,
+        public float  $previsionnel,
+        public string $typeActiviteCode = 'COURS',
     ) {
     }
 
@@ -19,10 +20,16 @@ final class ProjectionSeanceRow
         return $this->reel > 0 || $this->previsionnel > 0;
     }
 
+    public function isMission(): bool
+    {
+        return $this->typeActiviteCode !== 'COURS';
+    }
+
     public function getKey(): string
     {
         return sprintf(
-            '%s|%s|%s|%s',
+            '%s|%s|%s|%s|%s',
+            $this->normalize($this->typeActiviteCode),
             $this->normalize($this->classe),
             $this->normalize($this->groupe),
             $this->normalize($this->formateur),

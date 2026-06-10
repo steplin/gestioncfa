@@ -20,6 +20,7 @@ final class ProjectionWorksheetParser
         $classe = $this->readClasseName($sheet);
         $currentGroupe = null;
         $currentFormateur = null;
+        $inMissionBlock = false;
 
         $highestRow = $sheet->getHighestDataRow();
 
@@ -30,6 +31,39 @@ final class ProjectionWorksheetParser
             $colD = $this->clean($sheet->getCell("D{$row}")->getCalculatedValue());
 
             if ($this->isEmptyRow($colA, $colB, $colC, $colD)) {
+                continue;
+            }
+
+            if ($this->isMissionBlockTitle($colA)) {
+                $inMissionBlock = true;
+                $currentGroupe = null;
+                $currentFormateur = null;
+                continue;
+            }
+
+            if ($inMissionBlock) {
+                if ($this->isMissionHeaderRow($colA, $colB, $colC, $colD)) {
+                    continue;
+                }
+
+                if ($this->isTotalMissionRow($colA)) {
+                    continue;
+                }
+
+                if ($this->isMissionRow($colA, $colB, $colC, $colD)) {
+                    [$typeActiviteCode, $matiere] = $this->parseMissionCell($colB);
+
+                    $rows[] = new ProjectionSeanceRow(
+                        classe: $classe,
+                        groupe: $classe,
+                        formateur: $colA,
+                        matiere: $matiere,
+                        reel: $this->toFloat($colC),
+                        previsionnel: $this->toFloat($colD),
+                        typeActiviteCode: $typeActiviteCode,
+                    );
+                }
+
                 continue;
             }
 
@@ -71,6 +105,7 @@ final class ProjectionWorksheetParser
                     matiere: $colB,
                     reel: $this->toFloat($colC),
                     previsionnel: $this->toFloat($colD),
+                    typeActiviteCode: 'COURS',
                 );
             }
         }
@@ -93,6 +128,33 @@ final class ProjectionWorksheetParser
         return mb_strtolower($colB) === 'matière'
             && mb_strtolower($colC) === 'réel'
             && mb_strtolower($colD) === 'prévisionnel';
+    }
+
+    private function isMissionBlockTitle(string $colA): bool
+    {
+        $a = mb_strtolower($colA);
+
+        return str_starts_with($a, 'missions');
+    }
+
+    private function isMissionHeaderRow(string $colA, string $colB, string $colC, string $colD): bool
+    {
+        return mb_strtolower($colA) === 'formateur'
+            && mb_strtolower($colB) === 'mission'
+            && mb_strtolower($colC) === 'réel'
+            && mb_strtolower($colD) === 'prévisionnel';
+    }
+
+    private function isMissionRow(string $colA, string $colB, string $colC, string $colD): bool
+    {
+        return $colA !== ''
+            && $colB !== ''
+            && ($colC !== '' || $colD !== '');
+    }
+
+    private function isTotalMissionRow(string $colA): bool
+    {
+        return str_starts_with(mb_strtolower($colA), 'total missions');
     }
 
     private function isSingleMergedLabelRow(string $colA, string $colB, string $colC, string $colD): bool
@@ -175,5 +237,39 @@ final class ProjectionWorksheetParser
         $value = str_replace(',', '.', $value);
 
         return is_numeric($value) ? (float) $value : 0.0;
+    }
+    private function parseMissionCell(string $value): array
+    {
+        $value = $this->clean($value);
+
+        if (str_contains($value, ' - ')) {
+            [$typeActiviteCode, $matiere] = explode(' - ', $value, 2);
+
+            return [
+                $this->normalizeCode($typeActiviteCode),
+                $this->clean($matiere),
+            ];
+        }
+
+        return [
+            $this->normalizeCode($value),
+            $value,
+        ];
+    }
+
+    private function normalizeCode(string $value): string
+    {
+        $value = $this->clean($value);
+        $value = mb_strtoupper($value);
+
+        $transliterator = \Transliterator::create('NFD; [:Nonspacing Mark:] Remove; NFC');
+        if ($transliterator !== null) {
+            $value = $transliterator->transliterate($value);
+        }
+
+        $value = preg_replace('/[^A-Z0-9]+/', '_', $value);
+        $value = trim((string) $value, '_');
+
+        return $value;
     }
 }
