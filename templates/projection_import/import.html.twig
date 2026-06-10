@@ -1,0 +1,365 @@
+{# templates/projection_import/import.html.twig #}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Import Projection Excel{% endblock %}
+
+{% block body %}
+    <div class="container-fluid mt-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">Import Projection Excel</h1>
+                <p class="text-muted mb-0">
+                    Import des séances pédagogiques depuis un fichier Excel, avec conservation des missions.
+                </p>
+            </div>
+        </div>
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="row g-4">
+
+            <div class="col-12 col-xl-5">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <strong>Paramètres d'import</strong>
+                    </div>
+
+                    <div class="card-body">
+                        {{ form_start(form, {
+                            attr: {
+                                enctype: 'multipart/form-data'
+                            }
+                        }) }}
+
+                        <div class="mb-3">
+                            {{ form_label(form.sourceSession) }}
+                            {{ form_widget(form.sourceSession, {
+                                attr: {
+                                    class: 'form-select'
+                                }
+                            }) }}
+                            {{ form_errors(form.sourceSession) }}
+                            <div class="form-text">
+                                Session précédente utilisée pour récupérer les missions.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.targetSession) }}
+                            {{ form_widget(form.targetSession, {
+                                attr: {
+                                    class: 'form-select'
+                                }
+                            }) }}
+                            {{ form_errors(form.targetSession) }}
+                            <div class="form-text">
+                                Session de projection à alimenter.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.file) }}
+                            {{ form_widget(form.file, {
+                                attr: {
+                                    class: 'form-control',
+                                    accept: '.xlsx,.xls'
+                                }
+                            }) }}
+                            {{ form_errors(form.file) }}
+                            <div class="form-text">
+                                Fichier Excel avec une feuille par classe.
+                            </div>
+                        </div>
+
+                        {% if form.dryRun is defined %}
+                            <div class="form-check form-switch mb-3">
+                                {{ form_widget(form.dryRun, {
+                                    attr: {
+                                        class: 'form-check-input'
+                                    }
+                                }) }}
+                                {{ form_label(form.dryRun, null, {
+                                    label_attr: {
+                                        class: 'form-check-label'
+                                    }
+                                }) }}
+                                {{ form_errors(form.dryRun) }}
+                            </div>
+                        {% endif %}
+
+                        <div class="alert alert-warning small mb-4">
+                            <strong>Attention :</strong>
+                            en import réel, toutes les séances de la session cible seront supprimées,
+                            sauf les séances de type <strong>MISSION</strong>.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+                                Simuler l'import
+                            </button>
+
+                            <button type="submit" name="action" value="import" class="btn btn-success"
+                                    onclick="return confirm('Confirmer l’import réel ? Les séances non-mission de la session cible seront remplacées.');">
+                                Importer réellement
+                            </button>
+                        </div>
+
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <strong>Règles appliquées</strong>
+                    </div>
+
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li>Les missions sont récupérées depuis la session précédente.</li>
+                            <li>Les séances non-mission de la session cible sont supprimées avant réimport.</li>
+                            <li>Les classes absentes sont créées automatiquement.</li>
+                            <li>Les groupes absents sont créés et rattachés aux classes.</li>
+                            <li>Les formateurs absents sont créés avec un email provisoire.</li>
+                            <li>Les matières absentes sont créées avec un coefficient par défaut.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {% if report is defined and report %}
+                    {% set summary = report.summary|default({}) %}
+
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <strong>Rapport d'import</strong>
+
+                            {% if report.hasErrors() %}
+                                <span class="badge bg-danger">Erreurs</span>
+                            {% elseif report.hasWarnings() %}
+                                <span class="badge bg-warning text-dark">Avertissements</span>
+                            {% else %}
+                                <span class="badge bg-success">OK</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="row g-3 mb-4">
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.classes_creees|default(0) }}</div>
+                                        <div class="text-muted small">Classes créées</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.groupes_crees|default(0) }}</div>
+                                        <div class="text-muted small">Groupes créés</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.formateurs_crees|default(0) }}</div>
+                                        <div class="text-muted small">Formateurs créés</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.matieres_creees|default(0) }}</div>
+                                        <div class="text-muted small">Matières créées</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.missions_copiees|default(0) }}</div>
+                                        <div class="text-muted small">Missions copiées</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.seances_creees|default(0) }}</div>
+                                        <div class="text-muted small">Séances créées</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.seances_supprimees|default(0) }}</div>
+                                        <div class="text-muted small">Séances supprimées</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.warnings|default(0) }}</div>
+                                        <div class="text-muted small">Avertissements</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h4 mb-0">{{ summary.errors|default(0) }}</div>
+                                        <div class="text-muted small">Erreurs</div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            {% if report.errors is not empty %}
+                                <h5 class="text-danger">Erreurs bloquantes</h5>
+                                <ul class="list-group mb-4">
+                                    {% for error in report.errors %}
+                                        <li class="list-group-item list-group-item-danger">
+                                            {{ error }}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if report.warnings is not empty %}
+                                <h5 class="text-warning">Avertissements</h5>
+                                <ul class="list-group mb-4">
+                                    {% for warning in report.warnings %}
+                                        <li class="list-group-item list-group-item-warning">
+                                            {{ warning }}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            <div class="row">
+
+                                <div class="col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <strong>Classes créées</strong>
+                                            <span class="badge pull-right">{{ report.classesCreees|default([])|length }}</span>
+                                        </div>
+
+                                        <div class="panel-body">
+                                            {% if report.classesCreees is empty %}
+                                                <p class="text-muted">Aucune classe créée.</p>
+                                            {% else %}
+                                                <ul class="mb-0">
+                                                    {% for classe in report.classesCreees %}
+                                                        <li>{{ classe }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="panel panel-success">
+                                        <div class="panel-heading">
+                                            <strong>Groupes créés</strong>
+                                            <span class="badge pull-right">{{ report.groupesCrees|default([])|length }}</span>
+                                        </div>
+
+                                        <div class="panel-body">
+                                            {% if report.groupesCrees is empty %}
+                                                <p class="text-muted">Aucun groupe créé.</p>
+                                            {% else %}
+                                                <ul class="mb-0">
+                                                    {% for groupe in report.groupesCrees %}
+                                                        <li>{{ groupe }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="panel panel-info">
+                                        <div class="panel-heading">
+                                            <strong>Formateurs créés</strong>
+                                            <span class="badge pull-right">{{ report.formateursCrees|default([])|length }}</span>
+                                        </div>
+
+                                        <div class="panel-body">
+                                            {% if report.formateursCrees is empty %}
+                                                <p class="text-muted">Aucun formateur créé.</p>
+                                            {% else %}
+                                                <ul class="mb-0">
+                                                    {% for formateur in report.formateursCrees %}
+                                                        <li>{{ formateur }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="panel panel-warning">
+                                        <div class="panel-heading">
+                                            <strong>Matières créées</strong>
+                                            <span class="badge pull-right">{{ report.matieresCreees|default([])|length }}</span>
+                                        </div>
+
+                                        <div class="panel-body">
+                                            {% if report.matieresCreees is empty %}
+                                                <p class="text-muted">Aucune matière créée.</p>
+                                            {% else %}
+                                                <ul class="mb-0">
+                                                    {% for matiere in report.matieresCreees %}
+                                                        <li>{{ matiere }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="panel panel-default">
+                                        <div class="panel-heading">
+                                            <strong>Missions copiées</strong>
+                                            <span class="badge pull-right">{{ report.missionsCopiees|default([])|length }}</span>
+                                        </div>
+
+                                        <div class="panel-body">
+                                            {% if report.missionsCopiees is empty %}
+                                                <p class="text-muted">Aucune mission copiée.</p>
+                                            {% else %}
+                                                <ul class="mb-0">
+                                                    {% for mission in report.missionsCopiees %}
+                                                        <li>{{ mission }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mt-4">
+                        Lance une simulation pour afficher le rapport avant import réel.
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+{% endblock %}

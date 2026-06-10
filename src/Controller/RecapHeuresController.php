@@ -27,7 +27,7 @@ class RecapHeuresController extends AbstractController
     ): Response
     {
 
-        $sessionId = $request->query->get('session', 1);
+        $sessionId = $request->query->get('session');
         $mode = $request->query->get('mode', 'reel');
 
         $session = $sessionId
@@ -46,10 +46,15 @@ class RecapHeuresController extends AbstractController
             $classe->updatePf($seances);
         }
         $em->flush();
+        $sessions = $sessionRepository->findBy([], [
+            'dateDebut' => 'DESC',
+            'id' => 'DESC',
+        ]);
         return $this->render('recap_heures/index.html.twig', [
             'session' => $session,
             'data' => $data,
-            'mode' => $mode
+            'mode' => $mode,
+            'sessions' => $sessions,
         ]);
     }
     #[Route('/recap-heures/excel/session/{session}', name: 'recap_heures_excel')]

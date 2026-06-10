@@ -49,6 +49,8 @@ class DashboardFormateurController extends AbstractController
         }
 
         $data = $service->build($formateur, $session);
+
+
         $calculator->calculate($formateur,$session);
         return $this->render('dashboard/formateur.html.twig', [
             'formateur' => $formateur,

@@ -23,10 +23,18 @@ final class ProjectionSeanceRow
     {
         return sprintf(
             '%s|%s|%s|%s',
-            mb_strtolower(trim($this->classe)),
-            mb_strtolower(trim($this->groupe)),
-            mb_strtolower(trim($this->formateur)),
-            mb_strtolower(trim($this->matiere))
+            $this->normalize($this->classe),
+            $this->normalize($this->groupe),
+            $this->normalize($this->formateur),
+            $this->normalize($this->matiere),
         );
+    }
+
+    private function normalize(string $value): string
+    {
+        $value = str_replace("\xc2\xa0", ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        return mb_strtolower(trim((string) $value));
     }
 }

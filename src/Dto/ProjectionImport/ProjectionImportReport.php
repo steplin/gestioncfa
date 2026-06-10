@@ -8,9 +8,7 @@ final class ProjectionImportReport
     private array $groupesCrees = [];
     private array $formateursCrees = [];
     private array $matieresCreees = [];
-
     private array $missionsCopiees = [];
-
     private array $warnings = [];
     private array $errors = [];
 
@@ -64,12 +62,12 @@ final class ProjectionImportReport
 
     public function hasErrors(): bool
     {
-        return !empty($this->errors);
+        return $this->errors !== [];
     }
 
     public function hasWarnings(): bool
     {
-        return !empty($this->warnings);
+        return $this->warnings !== [];
     }
 
     public function getSummary(): array

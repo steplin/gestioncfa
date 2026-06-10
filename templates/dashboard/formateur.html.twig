@@ -31,7 +31,7 @@
 
         {{ form_end(form) }}
     </div>
-    {% if formateur and data.analytique %}
+    {% if formateur and (data.classes is not empty or data.missions.lignes is not empty) %}
         <h3 class="text-center" style="margin-bottom:30px;">
             {{ formateur.nom }} {{ formateur.prenom }}
             <br>

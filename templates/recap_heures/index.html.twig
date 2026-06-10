@@ -15,7 +15,14 @@
 
         <form method="get" class="form-inline" style="margin-bottom:20px;">
             <input type="hidden" name="session" value="{{ session.id }}">
-
+            <label for="session">Session</label>
+            <select name="session" id="session" class="form-control" onchange="this.form.submit()">
+                {% for s in sessions %}
+                    <option value="{{ s.id }}" {{ s.id == session.id ? 'selected' : '' }}>
+                        {{ s }}
+                    </option>
+                {% endfor %}
+            </select><br>
             <label>Mode :</label>
             <select name="mode" class="form-control" onchange="this.form.submit()">
                 <option value="reel" {{ mode == 'reel' ? 'selected' }}>Réel</option>
